@@ -187,7 +187,7 @@ sys_fork(char *thread_name, struct intr_frame *if_){
 	tid_t child_tid = process_fork(thread_name, if_);
 	
 	if(child_tid < 0){
-		sys_exit(-1);
+		return TID_ERROR;
 	}
 
 	return child_tid;
@@ -212,7 +212,7 @@ sys_create(char* filename, unsigned size){
 int
 sys_open(char* filename){
 	struct thread * curr = thread_current();
-	if(!is_user_vaddr(filename) || pml4_get_page(curr->pml4, filename) == NULL || filename == NULL){
+	if(filename == NULL || !is_user_vaddr(filename) || pml4_get_page(curr->pml4, filename) == NULL ){
 		sys_exit(-1);
 	}
 
@@ -220,7 +220,7 @@ sys_open(char* filename){
 	//file descriptor 할당
 	int fd = find_descriptor(cur);
 	if(fd == -1){
-		sys_exit(-1);
+		return -1;
 	}
     
 	// enum intr_level old = intr_disable();
@@ -271,7 +271,7 @@ sys_read(int fd, void *buffer, size_t size){
 		return 0;
 	}
 
-	if(!is_user_vaddr(buffer) || pml4_get_page(curr->pml4, buffer)==NULL){
+	if(buffer == NULL || !is_user_vaddr(buffer) || pml4_get_page(curr->pml4, buffer)==NULL){
 		sys_exit(-1);
 	}
 
@@ -345,7 +345,7 @@ sys_close(int fd){
 	struct file *file = is_open_file(cur, fd);
 
 	if(file == NULL)
-		sys_exit(-1);
+		return;
 
 	lock_acquire(&file_lock);
 	file_close(file);	
@@ -370,7 +370,7 @@ void
 sys_seek(int fd, unsigned position){
 	struct file *f = thread_current()->file_table[fd];
 	if (f == NULL)
-		sys_exit(-1);
+		return;
 	file_seek(f, position);
 }
 
@@ -378,6 +378,6 @@ unsigned
 sys_tell(int fd){
 	struct file *f = thread_current()->file_table[fd];
 	if (f == NULL)
-		sys_exit(-1);
+		return (unsigned)-1;
 	file_tell(f);
 }
