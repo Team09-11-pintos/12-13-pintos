@@ -16,12 +16,12 @@ Executing 'open-empty':
 (open-empty) end
 open-empty: exit(0)
 Execution of 'open-empty' complete.
-Timer: 95 ticks
-Thread: 40 idle ticks, 45 kernel ticks, 10 user ticks
+Timer: 91 ticks
+Thread: 47 idle ticks, 38 kernel ticks, 6 user ticks
 hd0:0: 0 reads, 0 writes
 hd0:1: 97 reads, 234 writes
 hd1:0: 103 reads, 0 writes
-Console: 848 characters output
+Console: 847 characters output
 Keyboard: 0 keys pressed
 Exception: 0 page faults
 Powering off...

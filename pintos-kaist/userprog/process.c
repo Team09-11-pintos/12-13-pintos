@@ -357,7 +357,6 @@ process_wait (tid_t child_tid UNUSED) {
 				sema_down(&c->sema);
 				int result_status = c->exit_status;
 				list_remove(e);
-				free(c);
 				return result_status;
 			}
 	}
@@ -368,40 +367,27 @@ process_wait (tid_t child_tid UNUSED) {
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {
-	struct thread *curr = thread_current ();
-    /* TODO: 여기에 코드 작성
-     * TODO: 프로세스 종료 메시지 구현 (project2/process_termination.html 참고)
-     * TODO: 프로세스 자원 정리를 이곳에 구현하는 것을 권장합니다. */
-
-	// struct list_elem* e;
-	// struct thread *parent = curr->parent;
-	// for(e=list_begin(&parent->child_list);e!=list_back(&parent->child_list);e=list_next(e)){
-	// 	struct child* c = list_entry(e, struct child, elem);
-	// 	if(c->child_tid == curr->tid){
-	// 		sema_up(&c->sema);
-	// 		break;
-	// 	}
-	// }
-
-	// struct list_elem *e;
-	// for(e=list_begin(&curr->child_list);e!=list_end(&curr->child_list);e=list_next(e)){
-	// 	struct child* c = list_entry(e, struct child, elem);
-	// 	if(c==NULL)
-	// 		continue;
-	// 	else{
-	// 		list_remove(e);
-	// 		free(c);
-	// 	}
-	// }
-
-	// struct file** ft = curr->file_table;
-	// for(int i=0;i<127;i++){
-	// 	if(ft[i]==NULL){
-	// 		continue;
-	// 	}
-	// 	file_close(ft[i]);
-	// }
-	file_close (curr->run_file);
+	struct thread *cur = thread_current ();
+    struct child *c = cur->my_self;
+	struct list_elem *e;
+	if(c->is_exit == false){
+		c->is_exit = true;
+		c->exit_status = -1;
+	}
+	for(e=list_begin(&cur->child_list); e!=list_tail(&cur->child_list);
+		e=list_next(e)){
+			struct child *c = list_entry(e, struct child, elem);
+			free(c);
+		}
+	
+	for(int fd = 2; fd < 127; fd++){
+		if(cur->file_table[fd]){
+			file_close(cur->file_table[fd]);
+			cur->file_table[fd] = NULL;
+		}
+	}
+	file_close (cur->run_file);
+	cur->run_file = NULL;
     process_cleanup ();
 }
 

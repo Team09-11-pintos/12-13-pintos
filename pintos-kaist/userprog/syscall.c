@@ -255,7 +255,7 @@ sys_exit(int status){
 	struct child *c;
 	c = cur->my_self;
 
-	if ( c != NULL){ //exit status가 -1이 아니고 child가 존재할 때 
+	if (c != NULL){ //exit status가 -1이 아니고 child가 존재할 때 
 		c->is_exit = true;			//child 구조체 안에 값들 수정
 		c->exit_status = status;
 		printf("%s: exit(%d)\n",cur->name,status);//로그

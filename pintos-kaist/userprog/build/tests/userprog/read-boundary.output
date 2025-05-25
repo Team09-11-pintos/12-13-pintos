@@ -18,12 +18,12 @@ Executing 'read-boundary':
 (read-boundary) end
 read-boundary: exit(0)
 Execution of 'read-boundary' complete.
-Timer: 100 ticks
-Thread: 46 idle ticks, 47 kernel ticks, 8 user ticks
+Timer: 97 ticks
+Thread: 51 idle ticks, 40 kernel ticks, 7 user ticks
 hd0:0: 0 reads, 0 writes
 hd0:1: 122 reads, 258 writes
 hd1:0: 110 reads, 0 writes
-Console: 967 characters output
+Console: 966 characters output
 Keyboard: 0 keys pressed
 Exception: 0 page faults
 Powering off...

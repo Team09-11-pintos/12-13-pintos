@@ -16,8 +16,8 @@ Executing 'exec-missing':
 load: no-such-file: open failed
 exec-missing: exit(-1)
 Execution of 'exec-missing' complete.
-Timer: 93 ticks
-Thread: 46 idle ticks, 44 kernel ticks, 4 user ticks
+Timer: 95 ticks
+Thread: 49 idle ticks, 42 kernel ticks, 4 user ticks
 hd0:0: 0 reads, 0 writes
 hd0:1: 97 reads, 234 writes
 hd1:0: 103 reads, 0 writes
