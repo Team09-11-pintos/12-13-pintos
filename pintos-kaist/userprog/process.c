@@ -107,6 +107,9 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 		struct child* ch = list_entry(e, struct child, elem);
 		if(ch->child_tid == child_tid){
 			sema_down(&ch->sema);
+			if(ch->exit_status==-1){
+				return TID_ERROR;
+			}
 			break;
 		}
 	}
@@ -218,24 +221,22 @@ __do_fork (void *aux) {
 
 	process_init ();
 
-	struct list_elem * e;
+	struct child *ci = current->my_self;   /* 내 child 구조체 */
 
-	for(e = list_begin(&parent->child_list); e != list_end(&parent->child_list);e=list_next(e)){
-		struct child * target = list_entry(e, struct child, elem);
-		if(target->child_tid == current->tid){
-			sema_up(&target->sema);
-			break;
-		}
-	}
-
-	free(aux);
-
-	/* Finally, switch to the newly created process. */
-	if (succ){
-		do_iret (&if_);	
-	}
-error:
-	thread_exit ();
+    if (succ) {                     /* ★ fork 완전 성공 */
+        ci->exit_status = 0;
+        sema_up (&ci->sema);        /* 이제야 부모 깨움  */
+        free (aux);                 /* 준비된 인자 해제  */
+        do_iret (&if_);             /* 사용자 영역 진입 */
+    }
+//
+error:                              /* 복제 중 하나라도 실패 */
+    /* 부모에게 실패(-1) 통보 */
+    ci->exit_status = -1;
+    ci->is_exit     = true;
+    sema_up (&ci->sema);
+    free (aux);
+    thread_exit ();
 }
 
 void
