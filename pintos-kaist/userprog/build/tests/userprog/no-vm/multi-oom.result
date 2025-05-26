@@ -1,19 +1,15 @@
 FAIL
-Kernel panic in run: PANIC at ../../threads/thread.c:671 in schedule(): assertion `is_thread (next)' failed.
-Call stack: 0x8004218059 0x8004207d7d 0x80042071ab 0x8004209ee7 0x800420a4e9 0x800421b2af 0x800421b454 0x800421db46 0x800421d27c 0x800421d047 0x40067a 0x40074e 0x4003f7 0x40044b 0x400fb0
+Kernel panic in run: PANIC at ../../lib/kernel/list.c:270 in list_front(): assertion `!list_empty (list)' failed.
+Call stack: 0x8004218059 0x80042189bb 0x80042075ff 0x80042070e2 0x800421b79c 0x800421d50e 0x800421d2bf 0x800421cfa8 0x4002b9 0x40044b 0x400fb0
 Translation of call stack:
 0x0000008004218059: debug_panic (lib/kernel/debug.c:32)
-0x0000008004207d7d: schedule (threads/thread.c:673)
-0x00000080042071ab: thread_block (threads/thread.c:307)
-0x0000008004209ee7: sema_down (threads/synch.c:68)
-0x000000800420a4e9: lock_acquire (threads/synch.c:233)
-0x000000800421b2af: acquire_console (lib/kernel/console.c:92)
-0x000000800421b454: putbuf (lib/kernel/console.c:145)
-0x000000800421db46: sys_write (userprog/syscall.c:321)
-0x000000800421d27c: syscall_handler (userprog/syscall.c:106)
-0x000000800421d047: no_sti (userprog/syscall-entry.o:?)
-0x000000000040067a: (unknown)
-0x000000000040074e: (unknown)
-0x00000000004003f7: (unknown)
+0x00000080042189bb: list_front (lib/kernel/list.c:271)
+0x00000080042075ff: preempt_priority (threads/thread.c:413)
+0x00000080042070e2: thread_create (threads/thread.c:292)
+0x000000800421b79c: process_fork (userprog/process.c:97)
+0x000000800421d50e: sys_fork (userprog/syscall.c:187)
+0x000000800421d2bf: syscall_handler (userprog/syscall.c:127)
+0x000000800421cfa8: no_sti (userprog/syscall-entry.o:?)
+0x00000000004002b9: (unknown)
 0x000000000040044b: (unknown)
 0x0000000000400fb0: (unknown)

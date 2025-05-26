@@ -18,12 +18,12 @@ Executing 'write-zero':
 (write-zero) end
 write-zero: exit(0)
 Execution of 'write-zero' complete.
-Timer: 99 ticks
-Thread: 45 idle ticks, 46 kernel ticks, 8 user ticks
+Timer: 100 ticks
+Thread: 52 idle ticks, 42 kernel ticks, 6 user ticks
 hd0:0: 0 reads, 0 writes
 hd0:1: 111 reads, 248 writes
 hd1:0: 105 reads, 0 writes
-Console: 939 characters output
+Console: 940 characters output
 Keyboard: 0 keys pressed
 Exception: 0 page faults
 Powering off...

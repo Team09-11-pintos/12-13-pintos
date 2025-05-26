@@ -121,47 +121,35 @@ process_fork (const char *name, struct intr_frame *if_ UNUSED) {
 /* Duplicate the parent's address space by passing this function to the
  * pml4_for_each. This is only for the project 2. */
 static bool
-duplicate_pte (uint64_t *pte, void *va, void *aux) {
-	struct thread *current = thread_current ();
-	struct thread *parent = (struct thread *) aux; //parent
-	void *parent_page = pte;
-	void *newpage;
-	bool writable;
+duplicate_pte (uint64_t *pte, void *va_, void *aux) {
+    void *va = va_;                                          
+    struct thread *cur    = thread_current ();
+    struct thread *parent = (struct thread *) aux;
 
-	/* 1. TODO: If the parent_page is kernel page, then return immediately. */
-	if(is_kernel_vaddr(va)){
-		return true;
-	}
-	/* 2. Resolve VA from the parent's page map level 4. */
-	// parent의 pml4에서 va에 해당되는 페이지 가져오기
-	parent_page = pml4_get_page (parent->pml4, va);
-	if(parent_page == NULL){
-		return false;
-	}
+    // 1) 사용자 영역밖(커널) VA는 스킵
+    if (!is_user_vaddr(va))
+      return true;
 
-	/* 3. TODO: Allocate new PAL_USER page for the child and set result to
-	 *    TODO: NEWPAGE. */
+    // 2) 재귀 매핑 영역(PHYS_BASE…PHYS_BASE+PGSIZE)도 스킵
+    if (va >= PHYS_BASE && va < PHYS_BASE + PGSIZE)
+      return true;
 
-	newpage = palloc_get_page(PAL_USER);
-
-	if(newpage == NULL){
-		return false;
-	}
-
-	/* 4. TODO: Duplicate parent's page to the new page and
-	 *    TODO: check whether parent's page is writable or not (set WRITABLE
-	 *    TODO: according to the result). */	
-	memcpy(newpage, parent_page, (1<<12));
-	writable = (*pte & PTE_W) != 0;
-	/* 5. Add new page to child's page table at address VA with WRITABLE
-	 *    permission. */
-	if (!pml4_set_page (current->pml4, va, newpage, writable)) {
-		/* 6. TODO: if fail to insert page, do error handling. */
-		palloc_free_page(newpage);
-		return false;
-	}
-	return true;
+    // 3) 정상적인 페이지 복제 로직
+    void *parent_page = pml4_get_page (parent->pml4, va);
+    if (parent_page == NULL)
+      return false;
+    void *newpage = palloc_get_page (PAL_USER);
+    if (newpage == NULL)
+      return false;
+    memcpy (newpage, parent_page, PGSIZE);
+    bool writable = (*pte & PTE_W) != 0;
+    if (!pml4_set_page (cur->pml4, va, newpage, writable)) {
+      palloc_free_page (newpage);
+      return false;
+    }
+    return true;
 }
+
 #endif
 
 /* A thread function that copies parent's execution context.
@@ -170,6 +158,8 @@ duplicate_pte (uint64_t *pte, void *va, void *aux) {
  *       this function. */
 static void
 __do_fork (void *aux) {
+	printf("[fork] free pages before duplication: %zu\n",
+         palloc_get_free_page_count());
 	struct fork_aux * aux_ = (struct fork_aux*)aux;
 	struct intr_frame if_;
 	struct thread *parent = aux_->parent;
@@ -367,27 +357,21 @@ process_wait (tid_t child_tid UNUSED) {
 /* Exit the process. This function is called by thread_exit (). */
 void
 process_exit (void) {
+	printf("[exit] free pages at exit: %zu\n",
+         palloc_get_free_page_count());
 	struct thread *cur = thread_current ();
-    struct child *c = cur->my_self;
-	struct list_elem *e;
-	if(c->is_exit == false){
-		c->is_exit = true;
-		c->exit_status = -1;
-	}
-	for(e=list_begin(&cur->child_list); e!=list_tail(&cur->child_list);
-		e=list_next(e)){
-			struct child *c = list_entry(e, struct child, elem);
-			free(c);
+    struct file** ft = cur->file_table;
+	for(int i=0;i<127;i++){
+		if(ft[i]==NULL){
+			continue;
 		}
-	
-	for(int fd = 2; fd < 127; fd++){
-		if(cur->file_table[fd]){
-			file_close(cur->file_table[fd]);
-			cur->file_table[fd] = NULL;
-		}
+		file_close(ft[i]);
 	}
-	file_close (cur->run_file);
-	cur->run_file = NULL;
+
+	if (cur->run_file){
+		file_close (cur->run_file);
+	}
+
     process_cleanup ();
 }
 

@@ -17,12 +17,12 @@ Executing 'create-normal':
 (create-normal) end
 create-normal: exit(0)
 Execution of 'create-normal' complete.
-Timer: 98 ticks
-Thread: 43 idle ticks, 46 kernel ticks, 9 user ticks
+Timer: 103 ticks
+Thread: 51 idle ticks, 42 kernel ticks, 10 user ticks
 hd0:0: 0 reads, 0 writes
 hd0:1: 102 reads, 246 writes
 hd1:0: 103 reads, 0 writes
-Console: 904 characters output
+Console: 906 characters output
 Keyboard: 0 keys pressed
 Exception: 0 page faults
 Powering off...
