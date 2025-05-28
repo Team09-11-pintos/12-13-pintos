@@ -266,8 +266,10 @@ void wakeup_thread(int64_t tick) {
 		init_thread (t, name, priority);
 		tid = t->tid = allocate_tid ();
 		struct child* child_init = create_child(tid);
-		t->my_self = child_init;
+		child_init->thread_pointer = t; // 자식 thread의 주소 저장
+		t->my_self = child_init; // thread에서도 child 구조체를 가리킴
 		list_push_back(&cur->child_list, &child_init->elem);
+		//t->parent = thread_current();
 
 
 		/* Call the kernel_thread if it scheduled.
@@ -522,6 +524,7 @@ init_thread (struct thread *t, const char *name, int priority) {
 	t->magic = THREAD_MAGIC;		
 	t->my_self = NULL;
 	t->run_file = NULL;
+	t->parent=NULL;
 	
 	t->wait_on_lock = NULL;
 	list_init(&(t->donations));

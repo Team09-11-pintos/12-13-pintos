@@ -261,6 +261,9 @@ sys_exit(int status){
 		printf("%s: exit(%d)\n",cur->name,status);//로그
 		sema_up(&c->sema);
 	}
+	// if (cur->parent == NULL) {
+    //     free(c);
+    // }
 	thread_exit();
 }
 

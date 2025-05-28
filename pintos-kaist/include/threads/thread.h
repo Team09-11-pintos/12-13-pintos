@@ -104,6 +104,7 @@ struct thread {
 	struct list child_list;
 	struct child * my_self;
 	struct file* run_file;
+	struct thread *parent;
 
 #ifdef USERPROG
 	/* Owned by userprog/process.c. */
@@ -127,6 +128,7 @@ struct child {
   int exit_status;
   struct semaphore sema;
   struct list_elem elem;
+  struct thread *thread_pointer;
 };
 
 extern int64_t global_tick;
