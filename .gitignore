@@ -29,3 +29,6 @@ core
 
 # macOS
 .DS_Store
+
+# .c 파일
+pintos-kaist/goodmorning.c

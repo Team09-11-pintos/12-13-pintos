@@ -392,3 +392,23 @@ remove_elem (struct hash *h, struct hash_elem *e) {
 	list_remove (&e->list_elem);
 }
 
+
+// [*] 3-o, 해쉬 함수 구현
+// 가상주소를 읽어서 해싱
+
+unsigned
+page_hash (const struct hash_elem *p_, void *aux UNUSED) {
+  const struct page *p = hash_entry (p_, struct page, hash_elem);
+  return hash_bytes (&p->va, sizeof p->va);
+  // 버퍼의 내용을 바이트 단위로 읽어서, 비트를 특정한 규칙에 따른 수학적 연산으로 섞어서, 64비트형 정수로 반환.
+}
+
+// 충돌시 버킷
+bool
+page_less (const struct hash_elem *a_,
+           const struct hash_elem *b_, void *aux UNUSED) {
+  const struct page *a = hash_entry (a_, struct page, hash_elem);
+  const struct page *b = hash_entry (b_, struct page, hash_elem);
+
+  return a->va < b->va;
+}

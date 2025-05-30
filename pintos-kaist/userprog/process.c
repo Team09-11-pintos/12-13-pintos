@@ -696,11 +696,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
 		/* Get a page of memory. */
+		/* 
+		유저 풀에서 메모리 확보(프레임 넘버)
+		그 프레임을 가리키는 커널 가상주소 = kpage
+		*/
 		uint8_t *kpage = palloc_get_page (PAL_USER);
 		if (kpage == NULL)
 			return false;
 
 		/* Load this page. */
+		/* 확보한 메모리에 실행파일 데이터 덮어씌우기 */
 		if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes) {
 			palloc_free_page (kpage);
 			return false;
@@ -708,6 +713,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
 		/* Add the page to the process's address space. */
+		/* 
+		앞서 말했듯 커널의 가상주소는 실제 물리메모리 주소를 가리키고 있으므로
+		유저 영역의 가상주소와 가상주소를 매핑하면,
+		유저 영역의 가상주소 엔트리가 실제 메모리 주소로 이어짐 
+		*/
 		if (!install_page (upage, kpage, writable)) {
 			printf("fail\n");
 			palloc_free_page (kpage);
