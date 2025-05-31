@@ -777,6 +777,27 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
+	struct file_load_aux* aux_ = aux;
+
+	uint8_t *kpage = palloc_get_page(PAL_USER);
+	if (kpage == NULL){
+		return false;
+	}
+    
+	off_t bytes_read = file_read_at(aux_->file, kpage, aux_->page_read_bytes, aux_->ofs);
+
+	if (bytes_read != aux_->page_read_bytes) {
+    /* 파일 읽기에 실패했거나, 원하는 만큼 읽지 못함 */
+    	palloc_free_page(kpage);
+    	return false;
+	}
+
+	memset(kpage + (aux_->page_read_bytes), 0, aux_->page_zero_bytes);
+
+	// 매핑해
+	
+	return true;
+		
 }
 
 /* Loads a segment starting at offset OFS in FILE at address
@@ -793,6 +814,15 @@ lazy_load_segment (struct page *page, void *aux) {
  *
  * Return true if successful, false if a memory allocation error
  * or disk read error occurs. */
+
+struct file_load_aux{
+	struct file* file;
+	off_t ofs;
+	size_t page_read_bytes;
+	size_t page_zero_bytes;
+	bool writable;
+};
+
 static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes, bool writable) {
@@ -804,16 +834,31 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		/* Do calculate how to fill this page.
 		 * We will read PAGE_READ_BYTES bytes from FILE
 		 * and zero the final PAGE_ZERO_BYTES bytes. */
+		/* 전달된 read 바이트가 pgsize(4KB)보다 크면, pgsize만큼만 읽고 다음 루프에서 처리
+		작으면 전달된 read 바이트만큼만 읽고 나머지는 0으로 채우기 */
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
+		off_t cur_ofs = ofs;
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		void *aux = NULL;
-		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
-					writable, lazy_load_segment, aux))
+		// [*]3-o, 페이지 예약 anon->file 로 변경
+		// 파일 로드에 필요한 정보들 전달
+		
+		struct file_load_aux* load_aux = malloc(sizeof(struct file_load_aux));
+
+		load_aux->file = file;
+		load_aux->ofs = cur_ofs;
+		load_aux->page_read_bytes = page_read_bytes;
+		load_aux->page_zero_bytes = page_zero_bytes;
+		load_aux->writable = writable;
+
+		// void *aux = load_aux;
+		if (!vm_alloc_page_with_initializer (VM_FILE, upage,
+					writable, lazy_load_segment, load_aux))
 			return false;
 
 		/* Advance. */
+		ofs += page_read_bytes;
 		read_bytes -= page_read_bytes;
 		zero_bytes -= page_zero_bytes;
 		upage += PGSIZE;
