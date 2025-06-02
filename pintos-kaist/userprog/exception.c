@@ -1,4 +1,5 @@
 #include "userprog/exception.h"
+#include "threads/vaddr.h"
 #include <inttypes.h>
 #include <stdio.h>
 #include "userprog/gdt.h"
@@ -143,35 +144,35 @@ page_fault(struct intr_frame *f)
 	write = (f->error_code & PF_W) != 0;
 	user = (f->error_code & PF_U) != 0;
 
-	
-
 #ifdef VM
 	/* For project 3 and later. */
-	if (user){
-	if (is_kernel_vaddr(fault_addr) || fault_addr < PROTECTED_USER_ADDR)
+	if (user)
 	{
-		sys_exit(-1);
-	}else if(!not_present && write){ 
-        sys_exit(-1);
-    }
-	}else{
-	page_fault_cnt++;
-
-	/* If the fault is true fault, show info and exit. */
-	printf("Page fault at %p: %s error %s page in %s context.\n",
-		   fault_addr,
-		   not_present ? "not present" : "rights violation",
-		   write ? "writing" : "reading",
-		   user ? "user" : "kernel");
-	kill(f);
+		if (is_kernel_vaddr(fault_addr) || (fault_addr < PROTECTED_USER_ADDR) || (fault_addr > USER_STACK))
+		{
+			sys_exit(-1);
+		}
+		else if (!not_present && write)
+		{
+			sys_exit(-1);
+		}
 	}
+	else // 커널영역에서 발생한 페이지 폴트
+	{
+		page_fault_cnt++;
 
-
-	if (vm_try_handle_fault(f, fault_addr, user, write, not_present))
+		/* If the fault is true fault, show info and exit. */
+		printf("Page fault at %p: %s error %s page in %s context.\n",
+			   fault_addr,
+			   not_present ? "not present" : "rights violation",
+			   write ? "writing" : "reading",
+			   user ? "user" : "kernel");
+		kill(f);
+	}
+	if (vm_try_handle_fault(f, pg_round_down(fault_addr), user, write, not_present))
 	{
 		return;
 	}
-
 
 #endif
 

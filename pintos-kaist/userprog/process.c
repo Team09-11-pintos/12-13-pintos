@@ -823,13 +823,7 @@ lazy_load_segment (struct page *page, void *aux) {
  * Return true if successful, false if a memory allocation error
  * or disk read error occurs. */
 
-struct file_load_aux{
-	struct file* file;
-	off_t ofs;
-	size_t page_read_bytes;
-	size_t page_zero_bytes;
-	bool writable;
-};
+
 
 static bool
 load_segment (struct file *file, off_t ofs, uint8_t *upage,
@@ -859,7 +853,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		load_aux->page_read_bytes = page_read_bytes;
 		load_aux->page_zero_bytes = page_zero_bytes;
 		load_aux->writable = writable;
-
 		// void *aux = load_aux;
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, load_aux))
@@ -879,12 +872,29 @@ static bool
 setup_stack (struct intr_frame *if_) {
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
+	struct thread *t = thread_current ();
+	bool writalbe = true;
 
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
 
+	// 일단은 확장없이 바로 할당으로
+	uint8_t *kpage;
+
+	kpage = palloc_get_page (PAL_USER | PAL_ZERO);
+	if (kpage != NULL) {
+		if (pml4_get_page (t->pml4, ((uint8_t *) USER_STACK) - PGSIZE) == NULL){
+			success = pml4_set_page (t->pml4, ((uint8_t *) USER_STACK) - PGSIZE, kpage, true);
+		}
+		if (success)
+			if_->rsp = USER_STACK;
+		else
+			palloc_free_page (kpage);
+	}
+
+		
 	return success;
 }
 #endif /* VM */

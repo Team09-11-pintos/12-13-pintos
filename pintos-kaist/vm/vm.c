@@ -51,7 +51,6 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 	ASSERT(VM_TYPE(type) != VM_UNINIT)
 
 	struct supplemental_page_table *spt = &thread_current()->spt;
-
 	/* Check wheter the upage is already occupied or not. */
 	if (spt_find_page(spt, upage) == NULL)
 	{
@@ -82,10 +81,8 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 			free(new_page);
 			ASSERT(false);
 		}
-
 		uninit_new(new_page, upage, init, type, aux, initializer);
 		new_page->writable = writable;
-
 		/* TODO: Insert the page into the spt. */
 
 		if (!spt_insert_page(spt, new_page))
@@ -93,6 +90,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 			printf("생성한 uninit 페이지를 spt에 추가하는 과정에서 오류\n");
 			return false;
 		}
+		return true;
 	}
 err:
 	printf("페이지가 이미 spt에 있음\n");
@@ -123,15 +121,14 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 {
 	int succ = false;
 	/* TODO: Fill this function. */
-	lock_acquire(&spt->spt_lock);
+	//lock_acquire(&spt->spt_lock);
 	struct hash_elem *tmp = hash_insert(&spt->s_pt, &page->hash_elem);
-	lock_release(&spt->spt_lock);
+	//lock_release(&spt->spt_lock);
 
 	if (tmp == NULL)
 	{
 		succ = true;
 	}
-
 	return succ;
 }
 
@@ -150,8 +147,9 @@ void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 static struct frame *
 vm_get_victim(void)
 {
-	struct frame *victim = NULL;
+	struct frame *victim = malloc(sizeof(struct frame));
 	/* TODO: The policy for eviction is up to you. */
+
 
 	return victim;
 }
@@ -174,11 +172,17 @@ vm_evict_frame(void)
 static struct frame *
 vm_get_frame(void)
 {
-	struct frame *frame = NULL;
+	struct frame *frame = malloc(sizeof(struct frame));
 	/* TODO: Fill this function. */
+	frame->page = NULL;
 	frame->kva = palloc_get_page(PAL_USER);
 
 	if (frame->kva == NULL){
+		// 추후 프레임 확보 알고리즘 구현
+		// frame = vm_evict_frame();
+		// 일단 지금은 return false로 처리
+		printf("메모리 확보 실패\n");
+		return false;
 
 	}
 	ASSERT(frame != NULL);
@@ -204,14 +208,15 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 {
 	/* TODO: Validate the fault */
 	/* TODO: Your code goes here */
-	// 접근 유효범위 검증
+	// 접근 유효범위 검증은 밖에서 했음. 여기서는 유저 영역에 대한 유효한 접근에 대해서만 처리.
 
-	struct supplemental_page_table *spt UNUSED = &thread_current()->spt;
+	struct supplemental_page_table *spt = &thread_current()->spt;
 	struct page *page = spt_find_page(spt, addr);
+
 	if (page == NULL)
-	{
-		sys_exit(-1);
+	{	
 		printf("페이지 예약정보 없음\n");
+		sys_exit(-1);
 		return false;
 	}
 
@@ -232,6 +237,8 @@ bool vm_claim_page(void *va UNUSED)
 {
 	struct page *page = NULL;
 	/* TODO: Fill this function */
+	
+	page =spt_find_page(&(thread_current()->spt), va);
 
 	return vm_do_claim_page(page);
 }
@@ -277,4 +284,24 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+}
+
+// [*] 3-o, 해쉬 함수 구현
+// 가상주소를 읽어서 해싱
+
+unsigned
+page_hash (const struct hash_elem *p_, void *aux UNUSED) {
+  const struct page *p = hash_entry (p_, struct page, hash_elem);
+  return hash_bytes (&p->va, sizeof p->va);
+  // 버퍼의 내용을 바이트 단위로 읽어서, 비트를 특정한 규칙에 따른 수학적 연산으로 섞어서, 64비트형 정수로 반환.
+}
+
+// 충돌시 버킷
+bool
+page_less (const struct hash_elem *a_,
+           const struct hash_elem *b_, void *aux UNUSED) {
+  const struct page *a = hash_entry (a_, struct page, hash_elem);
+  const struct page *b = hash_entry (b_, struct page, hash_elem);
+
+  return a->va < b->va;
 }
