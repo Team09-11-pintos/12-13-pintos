@@ -65,7 +65,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 			return false;
 		}
 
-		switch (type)
+		switch (VM_TYPE(type))
 		{
 		case VM_ANON:
 		{

@@ -780,29 +780,30 @@ lazy_load_segment (struct page *page, void *aux) {
 	struct file_load_aux* aux_ = aux;
 	struct thread *t = thread_current ();
 
-	uint8_t *kpage = palloc_get_page(PAL_USER);
-	if (kpage == NULL){
-		free(aux_);
-		return false;
-	}
+
+	// uint8_t *kpage = palloc_get_page(PAL_USER);
+	// if (kpage == NULL){
+	// 	free(aux_);
+	// 	return false;
+	// }
     
-	off_t bytes_read = file_read_at(aux_->file, kpage, aux_->page_read_bytes, aux_->ofs);
+	off_t bytes_read = file_read_at(aux_->file, page->frame->kva, aux_->page_read_bytes, aux_->ofs);
 
 	if (bytes_read != aux_->page_read_bytes) {
     /* 파일 읽기에 실패했거나, 원하는 만큼 읽지 못함 */
-    	palloc_free_page(kpage);
+    	palloc_free_page(page->frame->kva);
 		free(aux_);
     	return false;
 	}
 
-	memset(kpage + (aux_->page_read_bytes), 0, aux_->page_zero_bytes);
+	memset(page->frame->kva + (aux_->page_read_bytes), 0, aux_->page_zero_bytes);
 
-	if (pml4_get_page (t->pml4, page->va) == NULL && pml4_set_page (t->pml4, page->va, kpage, aux_->writable)){
+	if (pml4_get_page (t->pml4, page->va) == NULL && pml4_set_page (t->pml4, page->va, page->frame->kva, aux_->writable)){
 		free(aux_);
 		return true;
 	}else{
 		printf("pml4 매핑 실패\n");
-		palloc_free_page(kpage);
+		palloc_free_page(page->frame->kva);
 		free(aux_);
 		return false;
 	}
@@ -842,6 +843,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 		off_t cur_ofs = ofs;
+
 
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		// [*]3-o, 페이지 예약 anon->file 로 변경(취소)
