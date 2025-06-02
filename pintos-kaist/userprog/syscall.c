@@ -274,7 +274,9 @@ sys_read(int fd, void *buffer, size_t size){
 		return 0;
 	}
 
-	if(buffer == NULL || !is_user_vaddr(buffer) || pml4_get_page(curr->pml4, buffer)==NULL){
+	// 	조건검사에서 pml4_get_page(curr->pml4, buffer)==NULL 제외하니까 read_boundary 통과,
+	// NULL인게 정상임 그래야 페이지 fault가 떠서
+	if(buffer == NULL || !is_user_vaddr(buffer)){
 		sys_exit(-1);
 	}
 

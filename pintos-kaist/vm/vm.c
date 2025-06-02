@@ -84,7 +84,6 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		uninit_new(new_page, upage, init, type, aux, initializer);
 		new_page->writable = writable;
 		/* TODO: Insert the page into the spt. */
-
 		if (!spt_insert_page(spt, new_page))
 		{
 			printf("생성한 uninit 페이지를 spt에 추가하는 과정에서 오류\n");
@@ -121,9 +120,9 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 {
 	int succ = false;
 	/* TODO: Fill this function. */
-	//lock_acquire(&spt->spt_lock);
+	lock_acquire(&spt->spt_lock);
 	struct hash_elem *tmp = hash_insert(&spt->s_pt, &page->hash_elem);
-	//lock_release(&spt->spt_lock);
+	lock_release(&spt->spt_lock);
 
 	if (tmp == NULL)
 	{
@@ -215,11 +214,10 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 
 	if (page == NULL)
 	{	
-		printf("페이지 예약정보 없음\n");
+		//printf("페이지 예약정보 없음\n");
 		sys_exit(-1);
 		return false;
 	}
-
 
 	return vm_do_claim_page(page);
 }
@@ -271,6 +269,7 @@ vm_do_claim_page(struct page *page)
 void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED)
 {
 	hash_init(&spt->s_pt, page_hash, page_less, NULL);
+	lock_init(&spt->spt_lock);
 }
 
 /* Copy supplemental page table from src to dst */

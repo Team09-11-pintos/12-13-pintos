@@ -806,6 +806,7 @@ lazy_load_segment (struct page *page, void *aux) {
 		free(aux_);
 		return false;
 	}
+
 }
 
 /* Loads a segment starting at offset OFS in FILE at address

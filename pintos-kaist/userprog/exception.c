@@ -144,6 +144,9 @@ page_fault(struct intr_frame *f)
 	write = (f->error_code & PF_W) != 0;
 	user = (f->error_code & PF_U) != 0;
 
+	/* Count page faults. */
+	page_fault_cnt++;
+
 #ifdef VM
 	/* For project 3 and later. */
 	if (user)
@@ -157,18 +160,21 @@ page_fault(struct intr_frame *f)
 			sys_exit(-1);
 		}
 	}
-	else // 커널영역에서 발생한 페이지 폴트
-	{
-		page_fault_cnt++;
+	// else // 커널영역에서 발생한 페이지 폴트
+	// {
+	// 	page_fault_cnt++;
 
-		/* If the fault is true fault, show info and exit. */
-		printf("Page fault at %p: %s error %s page in %s context.\n",
-			   fault_addr,
-			   not_present ? "not present" : "rights violation",
-			   write ? "writing" : "reading",
-			   user ? "user" : "kernel");
-		kill(f);
-	}
+	// 	/* If the fault is true fault, show info and exit. */
+	// 	printf("Page fault at %p: %s error %s page in %s context.\n",
+	// 		   fault_addr,
+	// 		   not_present ? "not present" : "rights violation",
+	// 		   write ? "writing" : "reading",
+	// 		   user ? "user" : "kernel");
+	// 	kill(f);
+	// }
+
+	// [*]3-o, pg_round_down(fault_addr) fault_addr에 대해서 페이지 단위로 round_down해야 올바른 key 값에 접근할 수 있음.
+
 	if (vm_try_handle_fault(f, pg_round_down(fault_addr), user, write, not_present))
 	{
 		return;
@@ -176,8 +182,6 @@ page_fault(struct intr_frame *f)
 
 #endif
 
-	/* Count page faults. */
-	page_fault_cnt++;
 
 	/* If the fault is true fault, show info and exit. */
 	printf("Page fault at %p: %s error %s page in %s context.\n",
