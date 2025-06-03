@@ -58,8 +58,12 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
 		struct page *new_page = malloc(sizeof(struct page));
-		bool (*initializer)(struct page *, enum vm_type, void *kva) = NULL;
+		new_page->f_load_aux = malloc(sizeof(struct file_load_aux));
+		memcpy(new_page->f_load_aux,aux,sizeof(struct file_load_aux));
 
+		// free(aux);
+	
+		bool (*initializer)(struct page *, enum vm_type, void *kva) = NULL;
 		if (new_page == NULL)
 		{
 			return false;

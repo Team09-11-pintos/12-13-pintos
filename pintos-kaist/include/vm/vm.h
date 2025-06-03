@@ -50,6 +50,7 @@ struct page {
 	/* Your implementation */
 	struct hash_elem hash_elem;
 	bool writable;
+	struct file_load_aux *f_load_aux;
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
@@ -61,6 +62,13 @@ struct page {
 		struct page_cache page_cache;
 #endif
 	};
+};
+
+struct file_load_aux{
+	struct file* file;
+	off_t ofs;
+	size_t page_read_bytes;
+	size_t page_zero_bytes;
 };
 
 /* The representation of "frame" */

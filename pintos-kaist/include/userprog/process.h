@@ -3,12 +3,7 @@
 
 #include "threads/thread.h"
 
-struct file_load_aux{
-	struct file* file;
-	off_t ofs;
-	size_t page_read_bytes;
-	size_t page_zero_bytes;
-};
+
 
 tid_t process_create_initd (const char *file_name);
 tid_t process_fork (const char *name, struct intr_frame *if_);
