@@ -149,7 +149,6 @@ vm_get_victim(void)
 	struct frame *victim = malloc(sizeof(struct frame));
 	/* TODO: The policy for eviction is up to you. */
 
-
 	return victim;
 }
 
@@ -176,13 +175,13 @@ vm_get_frame(void)
 	frame->page = NULL;
 	frame->kva = palloc_get_page(PAL_USER);
 
-	if (frame->kva == NULL){
+	if (frame->kva == NULL)
+	{
 		// 추후 프레임 확보 알고리즘 구현
 		// frame = vm_evict_frame();
 		// 일단 지금은 return false로 처리
 		printf("메모리 확보 실패\n");
 		return false;
-
 	}
 	ASSERT(frame != NULL);
 	ASSERT(frame->page == NULL);
@@ -213,8 +212,8 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct page *page = spt_find_page(spt, addr);
 
 	if (page == NULL)
-	{	
-		//printf("페이지 예약정보 없음\n");
+	{
+		// printf("페이지 예약정보 없음\n");
 		sys_exit(-1);
 		return false;
 	}
@@ -235,8 +234,8 @@ bool vm_claim_page(void *va UNUSED)
 {
 	struct page *page = NULL;
 	/* TODO: Fill this function */
-	
-	page =spt_find_page(&(thread_current()->spt), va);
+
+	page = spt_find_page(&(thread_current()->spt), va);
 
 	return vm_do_claim_page(page);
 }
@@ -246,6 +245,7 @@ static bool
 vm_do_claim_page(struct page *page)
 {
 	struct frame *frame = vm_get_frame();
+	struct thread *t = thread_current();
 
 	/* Set links */
 	frame->page = page;
@@ -260,8 +260,25 @@ vm_do_claim_page(struct page *page)
 	이제 CPU가 그 가상주소로 접근하면 실제
 	물리 메모리(프레임)를 바라보도록 만든다는 의미
 	 */
+	// 여기서 다시
 
-	return swap_in(page, frame->kva);
+	if (swap_in(page, frame->kva))
+	{
+		if (pml4_get_page(t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, page->frame->kva, page->writable))
+		{
+			return true;
+		}
+		else
+		{
+			printf("pml4 매핑 실패\n");
+			palloc_free_page(page->frame->kva);
+			return false;
+		}
+	}else{
+		printf("파일 읽기 실패\n");
+		return false;
+	}
+	
 }
 
 /* Initialize new supplemental page table */
@@ -289,18 +306,19 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 // 가상주소를 읽어서 해싱
 
 unsigned
-page_hash (const struct hash_elem *p_, void *aux UNUSED) {
-  const struct page *p = hash_entry (p_, struct page, hash_elem);
-  return hash_bytes (&p->va, sizeof p->va);
-  // 버퍼의 내용을 바이트 단위로 읽어서, 비트를 특정한 규칙에 따른 수학적 연산으로 섞어서, 64비트형 정수로 반환.
+page_hash(const struct hash_elem *p_, void *aux UNUSED)
+{
+	const struct page *p = hash_entry(p_, struct page, hash_elem);
+	return hash_bytes(&p->va, sizeof p->va);
+	// 버퍼의 내용을 바이트 단위로 읽어서, 비트를 특정한 규칙에 따른 수학적 연산으로 섞어서, 64비트형 정수로 반환.
 }
 
 // 충돌시 버킷
-bool
-page_less (const struct hash_elem *a_,
-           const struct hash_elem *b_, void *aux UNUSED) {
-  const struct page *a = hash_entry (a_, struct page, hash_elem);
-  const struct page *b = hash_entry (b_, struct page, hash_elem);
+bool page_less(const struct hash_elem *a_,
+			   const struct hash_elem *b_, void *aux UNUSED)
+{
+	const struct page *a = hash_entry(a_, struct page, hash_elem);
+	const struct page *b = hash_entry(b_, struct page, hash_elem);
 
-  return a->va < b->va;
+	return a->va < b->va;
 }

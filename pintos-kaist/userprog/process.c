@@ -788,7 +788,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	// }
     
 	off_t bytes_read = file_read_at(aux_->file, page->frame->kva, aux_->page_read_bytes, aux_->ofs);
-
+	page->writable = aux_->writable;
 	if (bytes_read != aux_->page_read_bytes) {
     /* 파일 읽기에 실패했거나, 원하는 만큼 읽지 못함 */
     	palloc_free_page(page->frame->kva);
@@ -797,16 +797,9 @@ lazy_load_segment (struct page *page, void *aux) {
 	}
 
 	memset(page->frame->kva + (aux_->page_read_bytes), 0, aux_->page_zero_bytes);
+	free(aux_);
 
-	if (pml4_get_page (t->pml4, page->va) == NULL && pml4_set_page (t->pml4, page->va, page->frame->kva, aux_->writable)){
-		free(aux_);
-		return true;
-	}else{
-		printf("pml4 매핑 실패\n");
-		palloc_free_page(page->frame->kva);
-		free(aux_);
-		return false;
-	}
+	return true;
 
 }
 
