@@ -168,6 +168,9 @@ sys_exec(const char *file){
 
 	strlcpy(file_name, file, PGSIZE); //copy file, user->kernal
 
+	// process_exec 전에 테이블 초기화
+	
+	supplemental_page_table_init(&thread_current()->spt);
 	if (process_exec(file_name) == -1){
 		// palloc_free_page(file_name);
 		sys_exit(-1);

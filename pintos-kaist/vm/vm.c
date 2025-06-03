@@ -4,6 +4,7 @@
 #include "vm/vm.h"
 #include "vm/inspect.h"
 #include "../include/userprog/exception.h"
+#include "include/lib/string.h"
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -126,6 +127,8 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 	if (tmp == NULL)
 	{
 		succ = true;
+	}else{
+		printf("insert 중복\n");
 	}
 	return succ;
 }
@@ -296,8 +299,21 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	// dst (자식) , src (부모)
 	// 복사하는 방식은 uninit 페이지 확보한 뒤, 바로 claim
 	// claim의 의미; 물리페이지 할당 -> 프로세스의 페이지 테이블에 가상주소 <-> 할당한 물리프레임 매핑.
+	struct page *dst_page = malloc(sizeof(struct page));
 
+	int ii = 1;
+	struct hash_iterator i;
+	hash_first(&i, src);
+	while (hash_next(&i)){
+		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
+		memcpy(dst_page, src_page, sizeof(struct page));
+		spt_insert_page(dst,dst_page);
+		printf("총 %d번 순회\n", ii++);
+	}
 
+	printf("elem_cnt of dst: %d\n",dst->s_pt.elem_cnt);
+
+	return true;
 }
 
 /* Free the resource hold by the supplemental page table */
