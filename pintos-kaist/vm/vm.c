@@ -289,9 +289,15 @@ void supplemental_page_table_init(struct supplemental_page_table *spt UNUSED)
 }
 
 /* Copy supplemental page table from src to dst */
+// 초기화 관련 함수들(예: 새로운 페이지 엔트리를 위한 uninit 페이지 할당, SPT를 초기화하는 함수 등)을 재사용
 bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 								  struct supplemental_page_table *src UNUSED)
 {
+	// dst (자식) , src (부모)
+	// 복사하는 방식은 uninit 페이지 확보한 뒤, 바로 claim
+	// claim의 의미; 물리페이지 할당 -> 프로세스의 페이지 테이블에 가상주소 <-> 할당한 물리프레임 매핑.
+
+
 }
 
 /* Free the resource hold by the supplemental page table */
@@ -299,6 +305,9 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 {
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
+	// supplemental_page_table_init(spt);
+	hash_clear(&spt->s_pt,NULL);
+	lock_init(&spt->spt_lock);
 }
 
 // [*] 3-o, 해쉬 함수 구현
