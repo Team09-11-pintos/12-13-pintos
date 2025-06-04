@@ -26,6 +26,7 @@ static void process_cleanup (void);
 static bool load (const char *file_name, struct intr_frame *if_);
 static void initd (void *f_name);
 static void __do_fork (void *);
+static bool setup_stack (struct intr_frame *if_);
 
 static struct fork_aux{
 	struct thread* parent;
@@ -192,8 +193,11 @@ __do_fork (void *aux) {
 	process_activate (current);
 #ifdef VM
 	supplemental_page_table_init (&current->spt);
-	if (!supplemental_page_table_copy (&current->spt, &parent->spt))
-		goto error;
+	if (!supplemental_page_table_copy (&current->spt, &parent->spt)){
+		goto error;	
+		}
+
+		
 #else
 	if (!pml4_for_each (parent->pml4, duplicate_pte, parent))
 		goto error;
@@ -205,7 +209,7 @@ __do_fork (void *aux) {
 	 * TODO:       from the fork() until this function successfully duplicates
 	 * TODO:       the resources of parent.*/
 
-	
+
 	struct file ** parent_ft = parent->file_table;
 
 	for(int i=0;i<127;i++){
@@ -494,7 +498,7 @@ struct ELF64_PHDR {
 #define ELF ELF64_hdr
 #define Phdr ELF64_PHDR
 
-static bool setup_stack (struct intr_frame *if_);
+
 static bool validate_segment (const struct Phdr *, struct file *);
 static bool load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		uint32_t read_bytes, uint32_t zero_bytes,
@@ -772,14 +776,14 @@ install_page (void *upage, void *kpage, bool writable) {
  * If you want to implement the function for only project 2, implement it on the
  * upper block. */
 
-static bool
+bool
 lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
 	struct file_load_aux* aux_ = aux;
 	struct thread *t = thread_current ();
-
+	//printf("레이지 로드가 호출은 됐나요?\n");
 
 	// uint8_t *kpage = palloc_get_page(PAL_USER);
 	// if (kpage == NULL){
@@ -791,12 +795,13 @@ lazy_load_segment (struct page *page, void *aux) {
 	if (bytes_read != aux_->page_read_bytes) {
     /* 파일 읽기에 실패했거나, 원하는 만큼 읽지 못함 */
     	palloc_free_page(page->frame->kva);
+		printf("로드실패, 가상주소: %p\n",page->va);
 		free(aux_);
     	return false;
 	}
 
 	memset(page->frame->kva + (aux_->page_read_bytes), 0, aux_->page_zero_bytes);
-	free(aux_);
+	//free(aux_);
 
 	return true;
 
@@ -842,7 +847,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		// 파일 로드에 필요한 정보들 전달
 		
 		struct file_load_aux* load_aux = malloc(sizeof(struct file_load_aux));
-
 		load_aux->file = file;
 		load_aux->ofs = cur_ofs;
 		load_aux->page_read_bytes = page_read_bytes;
@@ -867,27 +871,20 @@ setup_stack (struct intr_frame *if_) {
 	bool success = false;
 	void *stack_bottom = (void *) (((uint8_t *) USER_STACK) - PGSIZE);
 	struct thread *t = thread_current ();
-	bool writalbe = true;
 
 	/* TODO: Map the stack on stack_bottom and claim the page immediately.
 	 * TODO: If success, set the rsp accordingly.
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
 
-	// 일단은 확장없이 바로 할당으로
-	uint8_t *kpage;
-
-	kpage = palloc_get_page (PAL_USER | PAL_ZERO);
-	if (kpage != NULL) {
-		if (pml4_get_page (t->pml4, ((uint8_t *) USER_STACK) - PGSIZE) == NULL){
-			success = pml4_set_page (t->pml4, ((uint8_t *) USER_STACK) - PGSIZE, kpage, true);
-		}
-		if (success)
-			if_->rsp = USER_STACK;
-		else
-			palloc_free_page (kpage);
+	if(!vm_alloc_page_with_initializer (VM_ANON | VM_MARKER_0, stack_bottom, true, NULL, NULL)){
+		return success;
 	}
-
+	if(!vm_claim_page(stack_bottom)){
+		return success;
+	}
+	if_->rsp = USER_STACK;
+	success = true;
 		
 	return success;
 }

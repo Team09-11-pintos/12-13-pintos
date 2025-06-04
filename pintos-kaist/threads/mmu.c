@@ -213,9 +213,7 @@ pml4_activate (uint64_t *pml4) {
 void *
 pml4_get_page (uint64_t *pml4, const void *uaddr) {
 	ASSERT (is_user_vaddr (uaddr));
-
 	uint64_t *pte = pml4e_walk (pml4, (uint64_t) uaddr, 0);
-
 	if (pte && (*pte & PTE_P))
 		return ptov (PTE_ADDR (*pte)) + pg_ofs (uaddr);
 	return NULL;
