@@ -135,6 +135,10 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			f->R.rax = sys_tell((int)f->R.rdi);
 			break;
 		}
+		default:
+		{
+			break;
+		}
 	}
 
 	// thread_exit ();

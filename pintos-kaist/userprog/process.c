@@ -777,7 +777,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: Load the segment from the file */
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
-	struct file_load_aux* aux_ = page->f_load_aux;
+	struct file_load_aux* aux_ = aux;
 	struct thread *t = thread_current ();
 
 
@@ -788,7 +788,6 @@ lazy_load_segment (struct page *page, void *aux) {
 	// }
     
 	off_t bytes_read = file_read_at(aux_->file, page->frame->kva, aux_->page_read_bytes, aux_->ofs);
-	page->writable = aux_->writable;
 	if (bytes_read != aux_->page_read_bytes) {
     /* 파일 읽기에 실패했거나, 원하는 만큼 읽지 못함 */
     	palloc_free_page(page->frame->kva);
@@ -848,7 +847,6 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
 		load_aux->ofs = cur_ofs;
 		load_aux->page_read_bytes = page_read_bytes;
 		load_aux->page_zero_bytes = page_zero_bytes;
-		load_aux->writable = writable;
 		// void *aux = load_aux;
 		if (!vm_alloc_page_with_initializer (VM_ANON, upage,
 					writable, lazy_load_segment, load_aux))

@@ -57,10 +57,8 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		 * TODO: and then create "uninit" page struct by calling uninit_new. You
 		 * TODO: should modify the field after calling the uninit_new. */
 		struct page *new_page = malloc(sizeof(struct page));
-		new_page->f_load_aux = malloc(sizeof(struct file_load_aux));
-		memcpy(new_page->f_load_aux,aux,sizeof(struct file_load_aux));
 
-		// free(aux);
+
 	
 		bool (*initializer)(struct page *, enum vm_type, void *kva) = NULL;
 		if (new_page == NULL)
@@ -300,6 +298,7 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	// dst (자식) , src (부모)
 	// 복사하는 방식은 uninit 페이지 확보한 뒤, 바로 claim
 	// claim의 의미; 물리페이지 할당 -> 프로세스의 페이지 테이블에 가상주소 <-> 할당한 물리프레임 매핑.
+	
 
 
 }
