@@ -801,7 +801,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	}
 
 	memset(page->frame->kva + (aux_->page_read_bytes), 0, aux_->page_zero_bytes);
-	//free(aux_);
+	free(aux_);
 
 	return true;
 
@@ -886,6 +886,7 @@ setup_stack (struct intr_frame *if_) {
 	if_->rsp = USER_STACK;
 	success = true;
 	//printf("stk bot: %p\n", stack_bottom);
+	t->stack_bot = (uintptr_t) stack_bottom;
 	return success;
 }
 #endif /* VM */

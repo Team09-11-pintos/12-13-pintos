@@ -92,7 +92,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		return true;
 	}
 err:
-	printf("페이지가 이미 spt에 있음\n");
+	//printf("페이지가 이미 spt에 있음\n");
 	return false;
 }
 
@@ -192,18 +192,19 @@ vm_get_frame(void)
 void vm_stack_growth(void *addr UNUSED, uintptr_t rsp)
 {
 	uintptr_t cur_rsp = rsp;
+
+
 	// void *stack_bottom_growth = (void *) ( addr);
 	// int i = 0; 디버깅용
 	char *stack_bottom_growth = (char *)(((uint8_t *)addr) - (1 << 12));
 	while (true)
 	{
-
 		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_growth, true))
 		{
-			printf("스택 확장 alloc 실패\n");
+			//printf("스택 확장 alloc 실패\n");
 			goto done;
 		}
-
+		
 		if (!vm_claim_page(stack_bottom_growth))
 		{
 			// printf("스택 확장 claim 실패\n");

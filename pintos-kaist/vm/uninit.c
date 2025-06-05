@@ -31,7 +31,6 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 	
 	*page = (struct page) {
 		.operations = &uninit_ops,
-		.l_aux = aux,
 		.va = va,
 		.frame = NULL, /* no frame for now */
 		.uninit = (struct uninit_page) {
