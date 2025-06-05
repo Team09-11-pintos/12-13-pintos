@@ -885,7 +885,7 @@ setup_stack (struct intr_frame *if_) {
 	}
 	if_->rsp = USER_STACK;
 	success = true;
-		
+	//printf("stk bot: %p\n", stack_bottom);
 	return success;
 }
 #endif /* VM */

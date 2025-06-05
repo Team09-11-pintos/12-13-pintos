@@ -189,9 +189,32 @@ vm_get_frame(void)
 }
 
 /* Growing the stack. */
-static void
-vm_stack_growth(void *addr UNUSED)
+void vm_stack_growth(void *addr UNUSED, uintptr_t rsp)
 {
+	uintptr_t cur_rsp = rsp;
+	// void *stack_bottom_growth = (void *) ( addr);
+	// int i = 0; 디버깅용
+	char *stack_bottom_growth = (char *)(((uint8_t *)addr) - (1 << 12));
+	while (true)
+	{
+
+		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_growth, true))
+		{
+			printf("스택 확장 alloc 실패\n");
+			goto done;
+		}
+
+		if (!vm_claim_page(stack_bottom_growth))
+		{
+			// printf("스택 확장 claim 실패\n");
+			goto done;
+		}
+
+		stack_bottom_growth = stack_bottom_growth + (1 << 12);
+	}
+
+done:
+	return true;
 }
 
 /* Handle the fault on write_protected page */
@@ -209,6 +232,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	// 접근 유효범위 검증은 밖에서 했음. 여기서는 유저 영역에 대한 유효한 접근에 대해서만 처리.
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	struct page *page = spt_find_page(spt, addr);
+	// printf("addr: %p\n",addr);
 
 	if (page == NULL)
 	{
@@ -265,11 +289,12 @@ vm_do_claim_page(struct page *page)
 	{
 		if (pml4_get_page(t->pml4, page->va) == NULL && pml4_set_page(t->pml4, page->va, page->frame->kva, page->writable))
 		{
+			// printf("pml4 매핑 성공:page-> va = %p\n", page->va);
 			return true;
 		}
 		else
 		{
-			printf("pml4 매핑 실패\n");
+			printf("pml4 매핑 실패:page-> va = %p\n", page->va);
 			palloc_free_page(page->frame->kva);
 			return false;
 		}
@@ -309,8 +334,6 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	{
 		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
 		enum vm_type type = src_page->operations->type;
-
-		
 
 		switch (type)
 		{

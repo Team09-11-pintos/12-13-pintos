@@ -177,6 +177,17 @@ page_fault(struct intr_frame *f)
 
 	// [*]3-o, pg_round_down(fault_addr) fault_addr에 대해서 페이지 단위로 round_down해야 올바른 key 값에 접근할 수 있음.
 
+	if (
+		((uintptr_t)USER_STACK_LIMIT < (uintptr_t)fault_addr) && ((uintptr_t) fault_addr < (uintptr_t) USER_STACK)){
+		if (!user){
+			//printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
+			sys_exit(-1);
+		}else{
+			vm_stack_growth(pg_round_up(fault_addr), f->rsp);
+			return;
+		}
+	}
+
 	if (vm_try_handle_fault(f, pg_round_down(fault_addr), user, write, not_present))
 	{
 		return;
