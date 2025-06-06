@@ -5,6 +5,8 @@
 #include "vm/inspect.h"
 #include "../include/userprog/exception.h"
 #include "../include/userprog/process.h"
+#include "threads/vaddr.h"
+
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
@@ -83,6 +85,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		}
 		uninit_new(new_page, upage, init, type, aux, initializer);
 		new_page->writable = writable;
+
 		/* TODO: Insert the page into the spt. */
 		if (!spt_insert_page(spt, new_page))
 		{
@@ -92,7 +95,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		return true;
 	}
 err:
-	//printf("페이지가 이미 spt에 있음\n");
+	printf("페이지가 이미 spt에 있음\n");
 	return false;
 }
 
@@ -105,7 +108,7 @@ spt_find_page(struct supplemental_page_table *spt UNUSED, void *va UNUSED)
 	/* TODO: Fill this function. */
 	// 해쉬요소를 찾으려면 key만 넘겨주면 됨.
 
-	tmp.va = va;
+	tmp.va = pg_round_down(va);
 	tmp_e = hash_find(&spt->s_pt, &tmp.hash_elem);
 
 	return tmp_e != NULL ? hash_entry(tmp_e, struct page, hash_elem) : NULL;
@@ -189,31 +192,35 @@ vm_get_frame(void)
 }
 
 /* Growing the stack. */
-void vm_stack_growth(void *addr UNUSED, uintptr_t rsp)
+void vm_stack_growth(void *addr UNUSED)
 {
-	uintptr_t cur_rsp = rsp;
 
-
+	
 	// void *stack_bottom_growth = (void *) ( addr);
 	// int i = 0; 디버깅용
-	char *stack_bottom_growth = (char *)(((uint8_t *)addr) - (1 << 12));
-	while (true)
-	{
+	// printf("sad\n");
+	char *stack_bottom_growth = pg_round_down(addr);
+	uintptr_t stack_bottom_before_growth = thread_current () -> stack_bot;
+
+	while (stack_bottom_before_growth > stack_bottom_growth)
+	{	
 		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_growth, true))
 		{
-			//printf("스택 확장 alloc 실패\n");
+			printf("스택 확장 alloc 실패\n");
 			goto done;
 		}
 		
 		if (!vm_claim_page(stack_bottom_growth))
 		{
-			// printf("스택 확장 claim 실패\n");
+			printf("스택 확장 claim 실패\n");
 			goto done;
 		}
-
-		stack_bottom_growth = stack_bottom_growth + (1 << 12);
+		
+		stack_bottom_growth += (1 << 12);
 	}
-
+	thread_current () -> stack_bot = (uintptr_t) stack_bottom_growth;
+	//printf("asd\n");
+	// return true;
 done:
 	return true;
 }
@@ -234,10 +241,35 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	struct page *page = spt_find_page(spt, addr);
 	// printf("addr: %p\n",addr);
+	if (((uintptr_t)USER_STACK_LIMIT < (uintptr_t)addr))
+	{	
+		if (!user)
+		{
+			// printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
+			sys_exit(-1);
+		}
+
+		// printf("stack_bot: %x\n", thread_current()->stack_bot);
+		// printf("fault addr in stack: %p\n", addr);
+		// printf("rsp: %x\n", f->rsp);
+		// printf("stack_bot - fault addr: %p\n", ((thread_current()->stack_bot) - (uintptr_t)addr));
+		// printf("rsp - addr: %p\n",  f->rsp - ((uintptr_t)addr));
+
+		if (((f->rsp) - ((uintptr_t)addr) >= (1<<12)))
+		{
+			//printf("sad\n");
+			sys_exit(-1);
+		}
+		else
+		{	
+			vm_stack_growth(addr);
+			return true;
+		}
+	}
 
 	if (page == NULL)
 	{
-		// printf("페이지 예약정보 없음\n");
+		printf("페이지 예약정보 없음\n");
 		sys_exit(-1);
 		return false;
 	}

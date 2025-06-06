@@ -147,6 +147,7 @@ page_fault(struct intr_frame *f)
 	/* Count page faults. */
 	page_fault_cnt++;
 	// printf("falut addr: %p\n", fault_addr);
+	
 
 #ifdef VM
 	/* For project 3 and later. */
@@ -158,6 +159,13 @@ page_fault(struct intr_frame *f)
 			sys_exit(-1);
 		}
 		else if (!not_present && write)
+		{
+			sys_exit(-1);
+		}
+	}
+
+	if (!user){
+		if (!not_present && write)
 		{
 			sys_exit(-1);
 		}
@@ -182,39 +190,16 @@ page_fault(struct intr_frame *f)
 	// printf("stk_bot - (1<<12): %x\n", (thread_current()->stack_bot) - (1 << 12));
 	// printf("fault_addr - (1<<12): %x\n", (fault_addr - (1 << 12)));
 
-	if (
-		((uintptr_t)USER_STACK_LIMIT < (uintptr_t)fault_addr) && ((uintptr_t)fault_addr < (uintptr_t)USER_STACK))
-	{	
-		printf("stack_bot: %x\n", thread_current()->stack_bot);
-		printf("fault addr in stack: %p\n", fault_addr);
-		printf("rsp: %x\n", f->rsp);
-		//printf("stack_bot - fault addr: %p\n", ((thread_current()->stack_bot) - (uintptr_t)fault_addr));
-		printf("fault_addr - rsp: %p\n", ((uintptr_t)fault_addr) - f->rsp);
-		if ((((uintptr_t)fault_addr) + (1<<12) >= (f->rsp)))
-		{
-			// printf("sad\n");
-			sys_exit(-1);
-		}
 
-		if (!user)
-		{
-			// printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
-			sys_exit(-1);
-		}
-		else
-		{	
-			vm_stack_growth(pg_round_up(fault_addr), f->rsp);
-			return;
-		}
-	}
 
-	if (vm_try_handle_fault(f, pg_round_down(fault_addr), user, write, not_present))
+	if (vm_try_handle_fault(f, fault_addr, user, write, not_present))
 	{
 		return;
 	}
 
 #endif
 
+	
 	/* If the fault is true fault, show info and exit. */
 	printf("Page fault at %p: %s error %s page in %s context.\n",
 		   fault_addr,

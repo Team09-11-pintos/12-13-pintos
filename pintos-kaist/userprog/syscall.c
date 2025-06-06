@@ -284,6 +284,12 @@ sys_read(int fd, void *buffer, size_t size){
 		sys_exit(-1);
 	}
 
+	// 이미 등록된 페이지, 즉 page fault를 거치지 않고 접근한 경우에 writable을 체크하는 방법.
+	struct page* check_writable = spt_find_page(&thread_current()->spt, buffer);
+
+	if((check_writable != NULL) && (check_writable->writable == false)){
+		sys_exit(-1);
+	}
 	if((fd<0) || (fd>=127)){
 		return -1;
 	}
