@@ -68,11 +68,7 @@ do_mmap (void *addr, size_t length, int writable,
 	}
 
 
-	// uint32_t quot =  file_length(file) / PGSIZE;
-	// uint32_t rem = (file_length(file) % PGSIZE) ? PGSIZE - (length % PGSIZE) : 0;
-	//quot -> 몫, rem -> 나머지;
-	
-
+	void* ret_addr = addr;
 
 	while (read_bytes > 0 || zero_bytes > 0) {
 		/* Do calculate how to fill this page.
@@ -101,8 +97,11 @@ do_mmap (void *addr, size_t length, int writable,
 		// printf("\t cur_ofs %d\n", cur_ofs);
 		// void *aux = load_aux;
 		if (!vm_alloc_page_with_initializer (VM_FILE, addr,
-					writable, lazy_load_segment, load_aux))
-			return false;
+					writable, lazy_load_segment, load_aux)){
+					free(load_aux);
+					return NULL;
+					}
+
 
 		/* Advance. */
 		offset += page_read_bytes;
@@ -110,7 +109,7 @@ do_mmap (void *addr, size_t length, int writable,
 		zero_bytes -= page_zero_bytes;
 		addr += PGSIZE;
 	}
-	return true;
+	return ret_addr;
 
 }
 
