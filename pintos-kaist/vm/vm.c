@@ -63,7 +63,8 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 
 		bool (*initializer)(struct page *, enum vm_type, void *kva) = NULL;
 		if (new_page == NULL)
-		{
+		{	
+			// printf("sad\n");
 			return false;
 		}
 

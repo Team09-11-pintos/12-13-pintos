@@ -436,7 +436,12 @@ bool file_map_check(size_t length, void * addr, int fd, off_t offset){
 	}
 
 	// valid addr
-	if (!addr || (((intptr_t)addr % PGSIZE))){
+	if (!addr || (((intptr_t)addr % PGSIZE)) || addr > 0x8000000000){
+		return false;
+	}
+
+	// valid offset
+	if ((((intptr_t)offset % PGSIZE))){
 		return false;
 	}
 

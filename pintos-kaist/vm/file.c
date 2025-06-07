@@ -84,7 +84,8 @@ do_mmap (void *addr, size_t length, int writable,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 		off_t cur_ofs = offset;
 
-
+		if (page_zero_bytes > zero_bytes)         // ★ 핵심
+    	 	page_zero_bytes = zero_bytes;
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		// [*]3-o, 페이지 예약 anon->file 로 변경(취소)
 		// 파일 로드에 필요한 정보들 전달
