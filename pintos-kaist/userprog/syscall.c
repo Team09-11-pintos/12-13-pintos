@@ -418,7 +418,6 @@ void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset){
 	struct file *file = is_open_file(cur,fd);
 
 	if (!file){
-		// printf("\tFDT NULL\n");
 		return NULL;
 	}
 
@@ -437,11 +436,7 @@ bool file_map_check(size_t length, void * addr, int fd, off_t offset){
 	}
 
 	// valid addr
-	if (!addr || (((intptr_t)addr % PGSIZE)) || addr >= KERN_BASE){
-		return false;
-	}
-	// valid offset
-	if (offset % PGSIZE){
+	if (!addr || (((intptr_t)addr % PGSIZE))){
 		return false;
 	}
 

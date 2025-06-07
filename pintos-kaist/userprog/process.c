@@ -784,6 +784,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: VA is available when calling this function. */
 	struct file_load_aux* aux_ = aux;
 	struct thread *t = thread_current ();
+	//printf("레이지 로드가 호출은 됐나요?\n");
 
 	// uint8_t *kpage = palloc_get_page(PAL_USER);
 	// if (kpage == NULL){

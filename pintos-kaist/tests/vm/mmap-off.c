@@ -44,7 +44,6 @@ test_main (void)
   CHECK (0x1000 == read (handle, buf, 0x1000), "read \"large.txt\" Page 1");
 
   msg ("validate page 1.");
-
   if (!memcmp ((void *) buf, zeros, 0x1000))
       msg ("validated.");
   else
