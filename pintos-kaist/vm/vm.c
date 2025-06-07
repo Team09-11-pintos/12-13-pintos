@@ -7,7 +7,6 @@
 #include "../include/userprog/process.h"
 #include "threads/vaddr.h"
 
-
 /* Initializes the virtual memory subsystem by invoking each subsystem's
  * intialize codes. */
 void vm_init(void)
@@ -96,7 +95,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 		return true;
 	}
 err:
-	//printf("페이지가 이미 spt에 있음\n");
+	// printf("페이지가 이미 spt에 있음\n");
 	return false;
 }
 
@@ -196,33 +195,31 @@ vm_get_frame(void)
 void vm_stack_growth(void *addr UNUSED)
 {
 
-	
 	// void *stack_bottom_growth = (void *) ( addr);
 	// int i = 0; 디버깅용
 	// printf("sad\n");
 	char *stack_bottom_growth = pg_round_down(addr);
-	uintptr_t stack_bottom_before_growth = thread_current () -> stack_bot;
-	
-	thread_current () -> stack_bot = (uintptr_t) stack_bottom_growth;
+	uintptr_t stack_bottom_before_growth = thread_current()->stack_bot;
+
+	thread_current()->stack_bot = (uintptr_t)stack_bottom_growth;
 	while (stack_bottom_before_growth > stack_bottom_growth)
-	{	
-		stack_bottom_before_growth -= (1<<12);
+	{
+		stack_bottom_before_growth -= (1 << 12);
 		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_before_growth, true))
 		{
 			printf("스택 확장 alloc 실패\n");
 			goto done;
 		}
-		
+
 		if (!vm_claim_page(stack_bottom_before_growth))
 		{
 			printf("스택 확장 claim 실패\n");
 			goto done;
 		}
-		
 	}
-	
-	//printf("asd\n");
-	// return true;
+
+	// printf("asd\n");
+	//  return true;
 done:
 	return true;
 }
@@ -244,7 +241,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct page *page = spt_find_page(spt, addr);
 	// printf("addr: %p\n",addr);
 	if (((uintptr_t)USER_STACK_LIMIT < (uintptr_t)addr))
-	{	
+	{
 		if (!user)
 		{
 			// printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
@@ -257,13 +254,13 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 		// printf("stack_bot - fault addr: %p\n", ((thread_current()->stack_bot) - (uintptr_t)addr));
 		// printf("rsp - addr: %p\n",  f->rsp - ((uintptr_t)addr));
 
-		if (((f->rsp) - ((uintptr_t)addr) >= (1<<12)))
+		if (((f->rsp) - ((uintptr_t)addr) >= (1 << 12)))
 		{
-			//printf("sad\n");
+			// printf("sad\n");
 			sys_exit(-1);
 		}
 		else
-		{	
+		{
 			vm_stack_growth(addr);
 			return true;
 		}
@@ -373,13 +370,15 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 		switch (type)
 		{
 		case VM_UNINIT:
+		{
 			if (!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, src_page->uninit.aux))
 			{
 				return false;
 			}
 			break;
-
-		default:
+		}
+		case VM_ANON:
+		{
 			if (!vm_alloc_page(VM_ANON, src_page->va, src_page->writable))
 			{
 				return false;
@@ -392,6 +391,14 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 			// memcpy 안쓰려고 했는데, 메모리에서 SPT를 통해 load하는 방식은 부모의 메모리상태를 반영하지 못해서 정확한 값 복사가안됨.
 			struct page *dst_page = spt_find_page(dst, src_page->va);
 			memcpy(dst_page->frame->kva, src_page->frame->kva, 1 << 12);
+			break;
+		}
+		case VM_FILE:
+		{
+		}
+
+		default:
+			printf("page type error\n");
 			break;
 		}
 	}
