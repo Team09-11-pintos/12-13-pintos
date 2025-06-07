@@ -526,6 +526,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	/* Open executable file. */
 	file = filesys_open (file_name);
 	if (file == NULL) {
+		//printf("sad\n");
 		printf ("load: %s: open failed\n", file_name);
 		goto done;
 	}
@@ -792,6 +793,13 @@ lazy_load_segment (struct page *page, void *aux) {
 	// }
     
 	off_t bytes_read = file_read_at(aux_->file, page->frame->kva, aux_->page_read_bytes, aux_->ofs);
+		
+		// printf("\t page->va: %p\n", page->va);
+		// printf("\t page_read-bytes: %d\n", aux_->page_read_bytes);
+		// printf("\t page_zero-bytes: %d\n", aux_->page_zero_bytes);
+		// printf("\t cur_ofs %d\n", aux_->ofs);
+
+		// printf("byte_read: %d\n",bytes_read);
 	if (bytes_read != aux_->page_read_bytes) {
     /* 파일 읽기에 실패했거나, 원하는 만큼 읽지 못함 */
     	palloc_free_page(page->frame->kva);

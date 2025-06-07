@@ -92,10 +92,11 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 			printf("생성한 uninit 페이지를 spt에 추가하는 과정에서 오류\n");
 			return false;
 		}
+
 		return true;
 	}
 err:
-	printf("페이지가 이미 spt에 있음\n");
+	//printf("페이지가 이미 spt에 있음\n");
 	return false;
 }
 
@@ -201,24 +202,25 @@ void vm_stack_growth(void *addr UNUSED)
 	// printf("sad\n");
 	char *stack_bottom_growth = pg_round_down(addr);
 	uintptr_t stack_bottom_before_growth = thread_current () -> stack_bot;
-
+	
+	thread_current () -> stack_bot = (uintptr_t) stack_bottom_growth;
 	while (stack_bottom_before_growth > stack_bottom_growth)
 	{	
-		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_growth, true))
+		stack_bottom_before_growth -= (1<<12);
+		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_before_growth, true))
 		{
 			printf("스택 확장 alloc 실패\n");
 			goto done;
 		}
 		
-		if (!vm_claim_page(stack_bottom_growth))
+		if (!vm_claim_page(stack_bottom_before_growth))
 		{
 			printf("스택 확장 claim 실패\n");
 			goto done;
 		}
 		
-		stack_bottom_growth += (1 << 12);
 	}
-	thread_current () -> stack_bot = (uintptr_t) stack_bottom_growth;
+	
 	//printf("asd\n");
 	// return true;
 done:

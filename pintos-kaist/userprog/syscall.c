@@ -15,6 +15,8 @@
 #include "intrinsic.h"
 #include <stdio.h>
 #include "threads/thread.h"
+#include "../include/vm/file.h"
+
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -32,6 +34,8 @@ bool sys_create(char*filename, unsigned size);
 int sys_open(char *filename);
 bool sys_remove(char *filename);
 int sys_filesize(int fd);
+void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset);
+bool file_map_check(size_t length, void * addr, int fd, off_t offset);
 
 
 
@@ -133,6 +137,13 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		}
 		case SYS_TELL:{
 			f->R.rax = sys_tell((int)f->R.rdi);
+			break;
+		}
+		case SYS_MMAP:{
+			f->R.rax = sys_mmap((void*) (f->R.rdi), (size_t) (f->R.rsi), (int) (f->R.rdx), (int) (f->R.r10), (off_t) (f->R.r8));
+			break;
+		}                   
+		case SYS_MUNMAP:{
 			break;
 		}
 		default:
@@ -395,4 +406,39 @@ sys_tell(int fd){
 	if (f == NULL)
 		return (unsigned)-1;
 	file_tell(f);
+}
+
+void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset){
+	if(!file_map_check(length,addr,fd,offset)){
+		//printf("\tfile map check false;\n");
+		return NULL;
+	}
+
+	struct thread* cur = thread_current();
+	struct file *file = is_open_file(cur,fd);
+
+	if (!file){
+		return NULL;
+	}
+
+	return do_mmap(addr, length, writable, file, offset);
+}
+
+bool file_map_check(size_t length, void * addr, int fd, off_t offset){
+	// length
+	if (length <= 0 || (((intptr_t)length % PGSIZE))){
+		return false;
+	}
+
+	// valid fd
+	if ((fd<=1) || (fd>=127)){
+		return false;
+	}
+
+	// valid addr
+	if (!addr || (((intptr_t)addr % PGSIZE))){
+		return false;
+	}
+
+	return true;
 }

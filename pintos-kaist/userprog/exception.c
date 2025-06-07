@@ -134,7 +134,6 @@ page_fault(struct intr_frame *f)
 	   that caused the fault (that's f->rip). */
 
 	fault_addr = (void *)rcr2();
-
 	/* Turn interrupts back on (they were only off so that we could
 	   be assured of reading CR2 before it changed). */
 	intr_enable();
@@ -164,12 +163,12 @@ page_fault(struct intr_frame *f)
 		}
 	}
 
-	if (!user){
-		if (!not_present && write)
-		{
-			sys_exit(-1);
-		}
-	}
+	// if (!user){
+	// 	if (!not_present && write)
+	// 	{
+	// 		sys_exit(-1);
+	// 	}
+	// }
 	// else // 커널영역에서 발생한 페이지 폴트
 	// {
 	// 	page_fault_cnt++;
