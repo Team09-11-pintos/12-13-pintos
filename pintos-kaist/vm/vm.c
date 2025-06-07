@@ -370,7 +370,7 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 	{
 		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
 		enum vm_type type = src_page->operations->type;
-
+		struct page *dst_page;
 		switch (type)
 		{
 		case VM_UNINIT:
@@ -380,7 +380,22 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 			}
 			break;
 
-		default:
+		case VM_FILE:
+			if (!vm_alloc_page(VM_FILE, src_page->va, src_page->writable))
+			{
+				return false;
+			}
+
+			if (!vm_claim_page(src_page->va))
+			{
+				return false;
+			}
+			// memcpy 안쓰려고 했는데, 메모리에서 SPT를 통해 load하는 방식은 부모의 메모리상태를 반영하지 못해서 정확한 값 복사가안됨.
+			dst_page = spt_find_page(dst, src_page->va);
+			memcpy(dst_page->frame->kva, src_page->frame->kva, 1 << 12);
+			break;
+
+		case VM_ANON:
 			if (!vm_alloc_page(VM_ANON, src_page->va, src_page->writable))
 			{
 				return false;
@@ -391,7 +406,7 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 				return false;
 			}
 			// memcpy 안쓰려고 했는데, 메모리에서 SPT를 통해 load하는 방식은 부모의 메모리상태를 반영하지 못해서 정확한 값 복사가안됨.
-			struct page *dst_page = spt_find_page(dst, src_page->va);
+			dst_page = spt_find_page(dst, src_page->va);
 			memcpy(dst_page->frame->kva, src_page->frame->kva, 1 << 12);
 			break;
 		}
@@ -407,7 +422,6 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	 * TODO: writeback all the modified contents to the storage. */
 	// supplemental_page_table_init(spt);
 	hash_clear(&spt->s_pt, NULL);
-	lock_init(&spt->spt_lock);
 }
 
 // [*] 3-o, 해쉬 함수 구현
