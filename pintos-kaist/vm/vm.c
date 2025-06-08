@@ -374,7 +374,9 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 		switch (type)
 		{
 		case VM_UNINIT:{
-			if (!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, src_page->uninit.aux))
+			struct file_load_aux *uninit_aux = malloc(sizeof(struct file_load_aux));
+			memcpy(uninit_aux, src_page->uninit.aux, sizeof(struct file_load_aux));
+			if (!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, uninit_aux))
 			{
 				return false;
 			}
