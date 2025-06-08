@@ -244,11 +244,11 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	struct page *page = spt_find_page(spt, addr);
 	// printf("addr: %p\n",addr);
-	if (((uintptr_t)USER_STACK_LIMIT < (uintptr_t)addr))
+	if (((uintptr_t)USER_STACK_LIMIT < (uintptr_t)addr && (uintptr_t) addr <= USER_STACK))
 	{	
 		if (!user)
 		{
-			// printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
+			//printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
 			sys_exit(-1);
 		}
 
@@ -260,7 +260,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 
 		if (((f->rsp) - ((uintptr_t)addr) >= (1<<12)))
 		{
-			//printf("sad\n");
+			//printf("saasdsadd\n");
 			sys_exit(-1);
 		}
 		else

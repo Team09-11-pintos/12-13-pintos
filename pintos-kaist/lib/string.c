@@ -53,8 +53,10 @@ memcmp (const void *a_, const void *b_, size_t size) {
 	ASSERT (b != NULL || size == 0);
 
 	for (; size-- > 0; a++, b++)
-		if (*a != *b)
+		if (*a != *b){
+
 			return *a > *b ? +1 : -1;
+		}
 	return 0;
 }
 
