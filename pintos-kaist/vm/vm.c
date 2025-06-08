@@ -272,7 +272,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 
 	if (page == NULL)
 	{
-		printf("페이지 예약정보 없음\n");
+		//printf("페이지 예약정보 없음\n");
 		sys_exit(-1);
 		return false;
 	}

@@ -36,7 +36,7 @@ bool sys_remove(char *filename);
 int sys_filesize(int fd);
 void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset);
 bool file_map_check(size_t length, void * addr, int fd, off_t offset);
-
+void sys_munmap (void *addr);
 
 
 /* System call.
@@ -144,6 +144,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		}                   
 		case SYS_MUNMAP:{
+			sys_munmap(f->R.rdi);
 			break;
 		}
 		default:
@@ -426,6 +427,7 @@ void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset){
 
 void sys_munmap (void *addr){
 	do_munmap(addr);
+	return;
 }
 
 bool file_map_check(size_t length, void * addr, int fd, off_t offset){

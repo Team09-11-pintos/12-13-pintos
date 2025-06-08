@@ -58,6 +58,8 @@ file_backed_swap_out(struct page *page)
 	free(page->frame);
 	page->frame =NULL;
 	pml4_clear_page (cur->pml4, page->va);
+	//printf("page->va: %p\n", page->va);
+	return true;
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
@@ -65,8 +67,8 @@ static void
 file_backed_destroy(struct page *page)
 {
 	struct file_page *file_page UNUSED = &page->file;
-
 	file_backed_swap_out(page);
+	//printf("\t destroy\n");
 }
 
 /* Do the mmap */
@@ -114,7 +116,7 @@ do_mmap(void *addr, size_t length, int writable,
 		size_t page_zero_bytes = PGSIZE - page_read_bytes;
 		off_t cur_ofs = offset;
 
-		if (page_zero_bytes > zero_bytes) // ★ 핵심
+		if (page_zero_bytes > zero_bytes) 
 			page_zero_bytes = zero_bytes;
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
 		// 파일 로드에 필요한 정보들 전달
@@ -150,8 +152,13 @@ void do_munmap(void *addr)
 {	
 	struct thread *cur = thread_current();
 	struct page *unmap_page = spt_find_page(&cur->spt, addr);
-
-	spt_remove_page(&cur->spt, unmap_page);
+	while (unmap_page != NULL) {
+		if (page_get_type(unmap_page) != VM_FILE)
+			return;
+		spt_remove_page(&cur->spt, unmap_page);
+		addr += PGSIZE;
+		unmap_page = spt_find_page(&cur->spt, addr);
+	}
 
 
 }
