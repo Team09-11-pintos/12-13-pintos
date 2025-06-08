@@ -85,7 +85,6 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 			ASSERT(false);
 		}
 		uninit_new(new_page, upage, init, type, aux, initializer);
-		// printf("\tpage addr: %p\n", upage);
 		new_page->writable = writable;
 
 		/* TODO: Insert the page into the spt. */
@@ -372,23 +371,22 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 		struct page *src_page = hash_entry(hash_cur(&i), struct page, hash_elem);
 		enum vm_type type = src_page->operations->type;
 		struct page *dst_page;
-		struct file_load_aux* f_aux_for_child;
 		switch (type)
 		{
 		case VM_UNINIT:{
-			// aux를 부모에게서 값을 읽어서 복사해야
-			// 나중에 중복해제를 막을 수 있음
-			f_aux_for_child = malloc(sizeof(struct file_load_aux));
-			memcpy(f_aux_for_child, src_page->uninit.aux, sizeof(struct file_load_aux));
-			if (!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, f_aux_for_child))
-			{	
+			if (!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, src_page->uninit.aux))
+			{
 				return false;
 			}
 			break;
 		}
 		case VM_FILE:{
 			struct file_load_aux *copy_aux = malloc(sizeof(struct file_load_aux));
-			memcpy(copy_aux, src_page->file.f_aux, sizeof(struct file_load_aux));
+			copy_aux->file = src_page->file.file;
+			copy_aux->ofs = src_page->file.ofs;
+			copy_aux->page_read_bytes = src_page->file.page_read_bytes;
+			copy_aux->page_zero_bytes = src_page->file.page_zero_bytes;
+			
 			if (!vm_alloc_page_with_initializer(VM_FILE, src_page->va, src_page->writable,NULL, copy_aux))
 			{
 				free(copy_aux);
@@ -433,7 +431,9 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
 	// supplemental_page_table_init(spt);
+
 	hash_destroy(&spt->s_pt, spt_kill_destructor);
+
 }
 
 
