@@ -28,7 +28,7 @@ vm_anon_init (void) {
 bool
 anon_initializer (struct page *page, enum vm_type type, void *kva) {
 	/* Set up the handler */
-	memset(&page->uninit,0,sizeof(struct uninit_page));
+	//memset(&page->uninit,0,sizeof(struct uninit_page));
 	page->operations = &anon_ops;
 
 	struct anon_page *anon_page = &page->anon;

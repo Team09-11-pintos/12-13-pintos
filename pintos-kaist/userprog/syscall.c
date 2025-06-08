@@ -36,7 +36,7 @@ bool sys_remove(char *filename);
 int sys_filesize(int fd);
 void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset);
 bool file_map_check(size_t length, void * addr, int fd, off_t offset);
-
+void sys_munmap (void *addr);
 
 
 /* System call.
@@ -144,6 +144,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 			break;
 		}                   
 		case SYS_MUNMAP:{
+			sys_munmap(f->R.rdi);
 			break;
 		}
 		default:
@@ -424,19 +425,34 @@ void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset){
 	return do_mmap(addr, length, writable, file, offset);
 }
 
+void sys_munmap (void *addr){
+	do_munmap(addr);
+	return;
+}
+
 bool file_map_check(size_t length, void * addr, int fd, off_t offset){
 	// length
-	if (length <= 0 || (((intptr_t)length % PGSIZE))){
+	if (length <= 0){
+		//printf("\t invalid lenght\n");
 		return false;
 	}
 
 	// valid fd
 	if ((fd<=1) || (fd>=127)){
+		//printf("\t invalid fd\n");
+
 		return false;
 	}
 
 	// valid addr
-	if (!addr || (((intptr_t)addr % PGSIZE))){
+	if (!addr || (((intptr_t)addr % PGSIZE)) || addr > 0x8000000000){
+		//printf("\t invalid addr\n");
+		return false;
+	}
+
+	// valid offset
+	if ((((intptr_t)offset % PGSIZE))){
+		//printf("\t invalid offset\n");
 		return false;
 	}
 
