@@ -28,12 +28,7 @@ bool file_backed_initializer(struct page *page, enum vm_type type, void *kva)
 	page->operations = &file_ops;
 
 	struct file_page *file_page = &page->file;
-	struct file_load_aux *file_page_aux = (struct file_load_aux*) page->uninit.aux;
-	file_page->file = file_page_aux->file;
-	file_page->ofs = file_page_aux->ofs;
-	file_page->page_read_bytes = file_page_aux->page_read_bytes;
-	file_page->page_zero_bytes = file_page_aux->page_zero_bytes;
-
+	file_page->f_aux = page->uninit.aux;
 	//memset(&page->uninit,0,sizeof(struct uninit_page));
 }
 

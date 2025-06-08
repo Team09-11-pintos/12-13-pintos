@@ -802,6 +802,7 @@ lazy_load_segment (struct page *page, void *aux) {
     	palloc_free_page(page->frame->kva);
 		printf("로드실패, 가상주소: %p\n",page->va);
 		free(aux_);
+		aux_ = NULL;
     	return false;
 	}
 
