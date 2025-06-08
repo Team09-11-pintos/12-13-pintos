@@ -426,22 +426,27 @@ void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset){
 
 bool file_map_check(size_t length, void * addr, int fd, off_t offset){
 	// length
-	if (length <= 0 || (((intptr_t)length % PGSIZE))){
+	if (length <= 0){
+		//printf("\t invalid lenght\n");
 		return false;
 	}
 
 	// valid fd
 	if ((fd<=1) || (fd>=127)){
+		//printf("\t invalid fd\n");
+
 		return false;
 	}
 
 	// valid addr
 	if (!addr || (((intptr_t)addr % PGSIZE)) || addr > 0x8000000000){
+		//printf("\t invalid addr\n");
 		return false;
 	}
 
 	// valid offset
 	if ((((intptr_t)offset % PGSIZE))){
+		//printf("\t invalid offset\n");
 		return false;
 	}
 

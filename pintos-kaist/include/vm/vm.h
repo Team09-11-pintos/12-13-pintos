@@ -39,6 +39,7 @@ struct page_operations;
 struct thread;
 
 #define VM_TYPE(type) ((type) & 7)
+#define IS_STACK_PAGE(t)     ((t) & VM_MARKER_0) 
 
 /* The representation of "page".
  * This is kind of "parent class", which has four "child class"es, which are
@@ -135,5 +136,7 @@ page_less (const struct hash_elem *a_,
 
 unsigned
 page_hash (const struct hash_elem *p_, void *aux UNUSED);
+
+void spt_kill_destructor(struct hash_elem *h, void* aux UNUSED);
 
 #endif  /* VM_VM_H */

@@ -267,6 +267,8 @@ process_exec (void *f_name) {
 
 	/* We first kill the current context */
 	process_cleanup ();
+	// cleanup에서 다 초기화하니까 여기서 다시 init
+	supplemental_page_table_init(&thread_current()->spt);
 
 	// printf("%s\n", *file_name);
 
@@ -786,12 +788,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	struct thread *t = thread_current ();
 	//printf("레이지 로드가 호출은 됐나요?\n");
 
-	// uint8_t *kpage = palloc_get_page(PAL_USER);
-	// if (kpage == NULL){
-	// 	free(aux_);
-	// 	return false;
-	// }
-    
+    // if ()
 	off_t bytes_read = file_read_at(aux_->file, page->frame->kva, aux_->page_read_bytes, aux_->ofs);
 		
 		// printf("\t page->va: %p\n", page->va);

@@ -24,9 +24,17 @@ void vm_file_init(void)
 bool file_backed_initializer(struct page *page, enum vm_type type, void *kva)
 {
 	/* Set up the handler */
+
 	page->operations = &file_ops;
 
 	struct file_page *file_page = &page->file;
+	struct file_load_aux *file_page_aux = (struct file_load_aux*) page->uninit.aux;
+	file_page->file = file_page_aux->file;
+	file_page->ofs = file_page_aux->ofs;
+	file_page->page_read_bytes = file_page_aux->page_read_bytes;
+	file_page->page_zero_bytes = file_page_aux->page_zero_bytes;
+
+	//memset(&page->uninit,0,sizeof(struct uninit_page));
 }
 
 /* Swap in the page by read contents from the file. */
@@ -55,7 +63,6 @@ void *
 do_mmap(void *addr, size_t length, int writable,
 		struct file *file, off_t offset)
 {
-	// ASSERT ((read_bytes + zero_bytes) % PGSIZE == 0);
 	ASSERT(pg_ofs(addr) == 0);
 	ASSERT(offset % PGSIZE == 0);
 	uint32_t read_bytes, zero_bytes;
@@ -70,6 +77,9 @@ do_mmap(void *addr, size_t length, int writable,
 	size_t avail = file__length - offset;
 	read_bytes = avail < length ? avail : length;
 	zero_bytes = length - read_bytes;
+
+	// read_bytes = file__length < length ? file__length : length;
+	// zero_bytes = PGSIZE - read_bytes;
 	
 	// if (file__length >= length){
 	// 	read_bytes = length;
@@ -95,7 +105,6 @@ do_mmap(void *addr, size_t length, int writable,
 		if (page_zero_bytes > zero_bytes) // ★ 핵심
 			page_zero_bytes = zero_bytes;
 		/* TODO: Set up aux to pass information to the lazy_load_segment. */
-		// [*]3-o, 페이지 예약 anon->file 로 변경(취소)
 		// 파일 로드에 필요한 정보들 전달
 
 		struct file_load_aux *load_aux = malloc(sizeof(struct file_load_aux));
@@ -104,8 +113,8 @@ do_mmap(void *addr, size_t length, int writable,
 		load_aux->page_read_bytes = page_read_bytes;
 		load_aux->page_zero_bytes = page_zero_bytes;
 
-		// printf("\t page_read-bytes: %d\n", page_read_bytes);
-		// printf("\t page_zero-bytes: %d\n", page_zero_bytes);
+		//  printf("\t page_read-bytes: %d\n", page_read_bytes);
+		//  printf("\t page_zero-bytes: %d\n", page_zero_bytes);
 		// printf("\t cur_ofs %d\n", cur_ofs);
 		// void *aux = load_aux;
 		if (!vm_alloc_page_with_initializer(VM_FILE, addr,

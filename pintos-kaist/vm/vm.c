@@ -373,29 +373,38 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 		struct page *dst_page;
 		switch (type)
 		{
-		case VM_UNINIT:
+		case VM_UNINIT:{
 			if (!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, src_page->uninit.aux))
 			{
 				return false;
 			}
 			break;
-
-		case VM_FILE:
-			if (!vm_alloc_page(VM_FILE, src_page->va, src_page->writable))
+		}
+		case VM_FILE:{
+			struct file_load_aux *copy_aux = malloc(sizeof(struct file_load_aux));
+			copy_aux->file = src_page->file.file;
+			copy_aux->ofs = src_page->file.ofs;
+			copy_aux->page_read_bytes = src_page->file.page_read_bytes;
+			copy_aux->page_zero_bytes = src_page->file.page_zero_bytes;
+			
+			if (!vm_alloc_page_with_initializer(VM_FILE, src_page->va, src_page->writable,NULL, copy_aux))
 			{
+				free(copy_aux);
 				return false;
 			}
 
 			if (!vm_claim_page(src_page->va))
 			{
+				free(copy_aux);
 				return false;
 			}
 			// memcpy 안쓰려고 했는데, 메모리에서 SPT를 통해 load하는 방식은 부모의 메모리상태를 반영하지 못해서 정확한 값 복사가안됨.
 			dst_page = spt_find_page(dst, src_page->va);
 			memcpy(dst_page->frame->kva, src_page->frame->kva, 1 << 12);
 			break;
+		}
+		case VM_ANON:{
 
-		case VM_ANON:
 			if (!vm_alloc_page(VM_ANON, src_page->va, src_page->writable))
 			{
 				return false;
@@ -410,6 +419,7 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 			memcpy(dst_page->frame->kva, src_page->frame->kva, 1 << 12);
 			break;
 		}
+		}
 	}
 
 	return true;
@@ -421,8 +431,12 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
 	// supplemental_page_table_init(spt);
-	hash_clear(&spt->s_pt, NULL);
+
+	hash_destroy(&spt->s_pt, spt_kill_destructor);
+
 }
+
+
 
 // [*] 3-o, 해쉬 함수 구현
 // 가상주소를 읽어서 해싱
@@ -443,4 +457,10 @@ bool page_less(const struct hash_elem *a_,
 	const struct page *b = hash_entry(b_, struct page, hash_elem);
 
 	return a->va < b->va;
+}
+
+void spt_kill_destructor(struct hash_elem *h, void* aux UNUSED){
+	struct page *killll = hash_entry(h, struct page, hash_elem);
+	destroy(killll);
+	free(killll);
 }
