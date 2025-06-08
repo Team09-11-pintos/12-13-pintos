@@ -5,6 +5,7 @@
 #include "lib/kernel/hash.h"
 #include "threads/synch.h"
 #include "threads/vaddr.h"
+#include "threads/mmu.h"
 
 
 enum vm_type {

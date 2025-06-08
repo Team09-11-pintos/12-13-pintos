@@ -424,6 +424,10 @@ void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset){
 	return do_mmap(addr, length, writable, file, offset);
 }
 
+void sys_munmap (void *addr){
+	do_munmap(addr);
+}
+
 bool file_map_check(size_t length, void * addr, int fd, off_t offset){
 	// length
 	if (length <= 0){

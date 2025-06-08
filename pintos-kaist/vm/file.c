@@ -49,6 +49,15 @@ static bool
 file_backed_swap_out(struct page *page)
 {
 	struct file_page *file_page UNUSED = &page->file;
+		struct thread *cur = thread_current();
+	if (pml4_is_dirty((cur->pml4), page->va)){
+		file_write_at(page->file.file ,page->frame->kva, page->file.page_read_bytes, page->file.ofs);
+		pml4_set_dirty(cur->pml4,page->va,false);
+	}
+	palloc_free_page(page->frame->kva);
+	free(page->frame);
+	page->frame =NULL;
+	pml4_clear_page (cur->pml4, page->va);
 }
 
 /* Destory the file backed page. PAGE will be freed by the caller. */
@@ -56,6 +65,8 @@ static void
 file_backed_destroy(struct page *page)
 {
 	struct file_page *file_page UNUSED = &page->file;
+
+	file_backed_swap_out(page);
 }
 
 /* Do the mmap */
@@ -90,6 +101,7 @@ do_mmap(void *addr, size_t length, int writable,
 	// }
 
 	void *ret_addr = addr;
+	struct file *reopen_file = file_reopen(file);
 
 	while (read_bytes > 0 || zero_bytes > 0)
 	{
@@ -108,7 +120,7 @@ do_mmap(void *addr, size_t length, int writable,
 		// 파일 로드에 필요한 정보들 전달
 
 		struct file_load_aux *load_aux = malloc(sizeof(struct file_load_aux));
-		load_aux->file = file;
+		load_aux->file = reopen_file;
 		load_aux->ofs = cur_ofs;
 		load_aux->page_read_bytes = page_read_bytes;
 		load_aux->page_zero_bytes = page_zero_bytes;
@@ -135,5 +147,11 @@ do_mmap(void *addr, size_t length, int writable,
 
 /* Do the munmap */
 void do_munmap(void *addr)
-{
+{	
+	struct thread *cur = thread_current();
+	struct page *unmap_page = spt_find_page(&cur->spt, addr);
+
+	spt_remove_page(&cur->spt, unmap_page);
+
+
 }
