@@ -6,6 +6,7 @@
 #include "../include/userprog/exception.h"
 #include "../include/userprog/process.h"
 #include "threads/vaddr.h"
+#include <stdlib.h>
 
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
@@ -54,6 +55,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 	ASSERT(VM_TYPE(type) != VM_UNINIT)
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	/* Check wheter the upage is already occupied or not. */
+	// printf("\taddr: %p, name: %s\n", upage, thread_current()->name);
 	if (spt_find_page(spt, upage) == NULL)
 	{
 		/* TODO: Create the page, fetch the initialier according to the VM type,
@@ -200,35 +202,40 @@ vm_get_frame(void)
 void vm_stack_growth(void *addr UNUSED)
 {
 
-	
-	// void *stack_bottom_growth = (void *) ( addr);
+	// void *target_stk_bot = (void *) ( addr);
 	// int i = 0; 디버깅용
 	// printf("sad\n");
-	char *stack_bottom_growth = pg_round_down(addr);
-	uintptr_t stack_bottom_before_growth = thread_current () -> stack_bot;
-	
-	
-	while (stack_bottom_before_growth > stack_bottom_growth)
+	char *target_stk_bot = pg_round_down(addr);
+	//printf("target_stk_bot: %x\n", target_stk_bot);
+	uintptr_t origin_stack_bot = thread_current () -> stack_bot;
+	thread_current () -> stack_bot = (uintptr_t) target_stk_bot;
+	//int i = 0;
+	while (origin_stack_bot > target_stk_bot)
 	{	
-		stack_bottom_before_growth -= (1<<12);
-		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_before_growth, true))
+		origin_stack_bot -= (1<<12);
+		printf("stack growth addr: %p, name: %s\n",origin_stack_bot, thread_current()->name);
+		if (!vm_alloc_page(VM_ANON , origin_stack_bot, true))
 		{
 			printf("스택 확장 alloc 실패\n");
+			thread_current () -> stack_bot = (origin_stack_bot + (1<<12));
 			goto done;
 		}
 		
-		if (!vm_claim_page(stack_bottom_before_growth))
+		if (!vm_claim_page(origin_stack_bot))
 		{
+			thread_current () -> stack_bot = (origin_stack_bot + (1<<12));
 			printf("스택 확장 claim 실패\n");
 			goto done;
 		}
-		
+		thread_current () -> stack_bot = origin_stack_bot;
+		//printf("reps: %d\n", i++);
 	}
-	thread_current () -> stack_bot = (uintptr_t) stack_bottom_growth;
-	//printf("asd\n");
+	//printf("origin_stack_bot: %x\n", origin_stack_bot);
+
+	//printf("ssstack_bot: %x\n", thread_current () -> stack_bot);
 	// return true;
 done:
-	return true;
+	return;
 }
 
 /* Handle the fault on write_protected page */
@@ -247,35 +254,47 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	struct page *page = spt_find_page(spt, addr);
 	// printf("addr: %p\n",addr);
-	if (((uintptr_t)USER_STACK_LIMIT < (uintptr_t)addr && (uintptr_t) addr <= USER_STACK))
+	if(!user){
+		printf("\tfault addr in kernel: %p\n", addr);
+	}
+	if (((uintptr_t)USER_STACK_LIMIT <= (uintptr_t)addr && (uintptr_t) addr <= USER_STACK))
 	{	
-		if (!user)
-		{
-			//printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
-			sys_exit(-1);
-		}
+		// if (!user)
+		// {
+		// 	printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
+		// 	sys_exit(-1);
+		// }
 
 		// printf("stack_bot: %x\n", thread_current()->stack_bot);
 		// printf("fault addr in stack: %p\n", addr);
-		// printf("rsp: %x\n", f->rsp);
+		//printf("rsp: %x\n", f->rsp);
 		// printf("stack_bot - fault addr: %p\n", ((thread_current()->stack_bot) - (uintptr_t)addr));
-		// printf("rsp - addr: %p\n",  f->rsp - ((uintptr_t)addr));
-
-		if (((f->rsp) - ((uintptr_t)addr) >= (1<<12)))
-		{
-			//printf("saasdsadd\n");
-			sys_exit(-1);
-		}
-		else
-		{	
+		
+		printf("user_rsp: %x\n", thread_current()->user_rsp);
+		ptrdiff_t diff = (thread_current()->user_rsp) - ((uintptr_t)addr);
+		printf("rsp - addr: %d\n",  diff);
+		// if (diff>= (1<<12))
+		// {
+		// 	printf("saasdsadd\n");
+		// 	sys_exit(-1);
+		// }
+		// else
+		// {	
+			// printf("asd\n");
+			// printf("fault addr for growth: %p\n", addr);
+			// printf("user?: %d\n", user);
 			vm_stack_growth(addr);
-			return true;
-		}
+			//return true;
+		// }
 	}
 
 	if (page == NULL)
 	{
-		//printf("페이지 예약정보 없음\n");
+		printf("페이지 예약정보 없음\n");
+		printf("\taddr: %p\n", addr);
+		printf("\tthread:name %s\n", thread_current()->name);
+		printf("\tchildstack bot: %x\n", thread_current()->stack_bot); 	
+		// printf("user?: %d\n", user);
 		sys_exit(-1);
 		return false;
 	}
@@ -381,8 +400,11 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 		case VM_UNINIT:{
 			struct file_load_aux *uninit_aux = malloc(sizeof(struct file_load_aux));
 			memcpy(uninit_aux, src_page->uninit.aux, sizeof(struct file_load_aux));
+			//printf("\tcopy addr: %p\n", src_page->va);
 			if (!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, uninit_aux))
 			{
+				printf("uninit copy 실패, 실패주소: %p\n", src_page->va);
+				
 				return false;
 			}
 			break;
@@ -414,11 +436,13 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 
 			if (!vm_alloc_page(VM_ANON, src_page->va, src_page->writable))
 			{
+				printf("복사중 할당 실패\n");
 				return false;
 			}
 
 			if (!vm_claim_page(src_page->va))
 			{
+				printf("복사중 클레임 실패\n");
 				return false;
 			}
 			// memcpy 안쓰려고 했는데, 메모리에서 SPT를 통해 load하는 방식은 부모의 메모리상태를 반영하지 못해서 정확한 값 복사가안됨.
@@ -438,8 +462,9 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
 	// supplemental_page_table_init(spt);
-
+	//lock_acquire(&spt->spt_lock);
 	hash_destroy(&spt->s_pt, spt_kill_destructor);
+	//lock_release(&spt->spt_lock);
 
 }
 

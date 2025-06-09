@@ -14,6 +14,7 @@ const char *test_name = "child-qsort";
 int
 main (int argc UNUSED, char *argv[]) 
 {
+  printf("여기까지 \n");
   int handle;
   unsigned char buf[128 * 1024];
   size_t size;

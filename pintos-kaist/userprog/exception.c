@@ -97,7 +97,7 @@ kill(struct intr_frame *f)
 		   Kernel code shouldn't throw exceptions.  (Page faults
 		   may cause kernel exceptions--but they shouldn't arrive
 		   here.)  Panic the kernel to make the point.  */
-		intr_dump_frame(f);
+		//intr_dump_frame(f);
 		PANIC("Kernel bug - unexpected interrupt in kernel");
 
 	default:
@@ -145,7 +145,7 @@ page_fault(struct intr_frame *f)
 
 	/* Count page faults. */
 	page_fault_cnt++;
-	// printf("falut addr: %p\n", fault_addr);
+	//printf("falut addr: %p\n", fault_addr);
 	
 
 #ifdef VM
@@ -154,12 +154,12 @@ page_fault(struct intr_frame *f)
 	{
 		if (is_kernel_vaddr(fault_addr) || (fault_addr < 0x400000))
 		{
-			//printf("디버깅용, 유효하지 않은 주소 접근\n");
+			printf("디버깅용, 유효하지 않은 주소 접근\n");
 			sys_exit(-1);
 		}
 		else if (!not_present && write)
 		{
-			//printf("디버깅용 존재하지 않는 주소\n");
+			printf("디버깅용 존재하지 않는 주소\n");
 			sys_exit(-1);
 		}
 	}
@@ -194,7 +194,6 @@ page_fault(struct intr_frame *f)
 
 	if (vm_try_handle_fault(f, fault_addr, user, write, not_present))
 	{
-		//printf("sadddd\n");
 		return;
 	}
 
