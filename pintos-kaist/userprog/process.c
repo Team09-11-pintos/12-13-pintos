@@ -785,7 +785,7 @@ lazy_load_segment (struct page *page, void *aux) {
 	/* TODO: This called when the first page fault occurs on address VA. */
 	/* TODO: VA is available when calling this function. */
 	struct file_load_aux* aux_ = aux;
-	struct thread *t = thread_current ();
+	//struct thread *t = thread_current ();
 	//printf("레이지 로드가 호출은 됐나요?\n");
 
     // if ()
@@ -894,4 +894,9 @@ setup_stack (struct intr_frame *if_) {
 	t->stack_bot = (uintptr_t) stack_bottom;
 	return success;
 }
+
+// bool stack_zero_filllll (struct page *page, void *aux UNUSED){
+// 	memset(page->frame->kva, 0, PGSIZE);
+// 	return true;
+// }
 #endif /* VM */
