@@ -180,10 +180,8 @@ vm_get_frame(void)
 	struct frame *frame = malloc(sizeof(struct frame));
 	/* TODO: Fill this function. */
 	frame->page = NULL;
-	frame->kva = palloc_get_page(PAL_USER | PAL_ZERO);
-	// 여기서 zero-fill 해주면 나머지는 페이지 타입별 로더에 따라 값이 알아서 채워짐
-	// 스택페이지는 예약할 때, 로더를 NULL로하니까 별도의 함수를 호출하지 않음.
-	
+	frame->kva = palloc_get_page(PAL_USER);
+
 	if (frame->kva == NULL)
 	{
 		// 추후 프레임 확보 알고리즘 구현
@@ -196,7 +194,6 @@ vm_get_frame(void)
 	ASSERT(frame->page == NULL);
 	return frame;
 }
-
 
 /* Growing the stack. */
 void vm_stack_growth(void *addr UNUSED)
@@ -325,14 +322,12 @@ bool vm_claim_page(void *va UNUSED)
 static bool
 vm_do_claim_page(struct page *page)
 {
-	
 	struct frame *frame = vm_get_frame();
 	struct thread *t = thread_current();
 
 	/* Set links */
 	frame->page = page;
 	page->frame = frame;
-
 
 	/* TODO: Insert page table entry to map page's VA to frame's PA. */
 	/* claim = 자원을 확보하는 것
