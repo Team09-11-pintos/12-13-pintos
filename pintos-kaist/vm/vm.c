@@ -251,35 +251,27 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	struct page *page = spt_find_page(spt, addr);
 	// printf("addr: %p\n",addr);
-	if(!user){
-		printf("\tfault addr in kernel: %p\n", addr);
-	}
-	if (((uintptr_t)USER_STACK_LIMIT <= (uintptr_t)addr && (uintptr_t) addr <= USER_STACK))
+	if (((uintptr_t)USER_STACK_LIMIT < (uintptr_t)addr))
 	{	
-		// if (!user)
-		// {
-		// 	printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
-		// 	sys_exit(-1);
-		// }
+		if (!user)
+		{
+			// printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
+			sys_exit(-1);
+		}
 
 		// printf("stack_bot: %x\n", thread_current()->stack_bot);
 		// printf("fault addr in stack: %p\n", addr);
 		//printf("rsp: %x\n", f->rsp);
 		// printf("stack_bot - fault addr: %p\n", ((thread_current()->stack_bot) - (uintptr_t)addr));
-		
-		printf("user_rsp: %x\n", thread_current()->user_rsp);
-		ptrdiff_t diff = (thread_current()->user_rsp) - ((uintptr_t)addr);
-		printf("rsp - addr: %d\n",  diff);
-		// if (diff>= (1<<12))
-		// {
-		// 	printf("saasdsadd\n");
-		// 	sys_exit(-1);
-		// }
-		// else
-		// {	
-			// printf("asd\n");
-			// printf("fault addr for growth: %p\n", addr);
-			// printf("user?: %d\n", user);
+		// printf("rsp - addr: %p\n",  f->rsp - ((uintptr_t)addr));
+
+		if (((f->rsp) - ((uintptr_t)addr) >= (1<<12)))
+		{
+			//printf("sad\n");
+			sys_exit(-1);
+		}
+		else
+		{	
 			vm_stack_growth(addr);
 			//return true;
 		// }

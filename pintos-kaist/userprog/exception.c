@@ -152,7 +152,7 @@ page_fault(struct intr_frame *f)
 	/* For project 3 and later. */
 	if (user)
 	{
-		if (is_kernel_vaddr(fault_addr) || (fault_addr < 0x400000))
+		if (is_kernel_vaddr(fault_addr) || (fault_addr < 0x400000) || (fault_addr > USER_STACK))
 		{
 			printf("디버깅용, 유효하지 않은 주소 접근\n");
 			sys_exit(-1);
