@@ -2,6 +2,12 @@
 #define VM_VM_H
 #include <stdbool.h>
 #include "threads/palloc.h"
+#include "lib/kernel/hash.h"
+#include "threads/synch.h"
+#include "threads/vaddr.h"
+#include "threads/mmu.h"
+#include "filesys/filesys.h"
+
 
 enum vm_type {
 	/* page not initialized */
@@ -35,6 +41,7 @@ struct page_operations;
 struct thread;
 
 #define VM_TYPE(type) ((type) & 7)
+#define IS_STACK_PAGE(t)     ((t) & VM_MARKER_0) 
 
 /* The representation of "page".
  * This is kind of "parent class", which has four "child class"es, which are
@@ -46,6 +53,8 @@ struct page {
 	struct frame *frame;   /* Back reference for frame */
 
 	/* Your implementation */
+	struct hash_elem hash_elem;
+	bool writable;
 
 	/* Per-type data are binded into the union.
 	 * Each function automatically detects the current union */
@@ -57,6 +66,13 @@ struct page {
 		struct page_cache page_cache;
 #endif
 	};
+};
+
+struct file_load_aux{
+	struct file* file;
+	off_t ofs;
+	size_t page_read_bytes;
+	size_t page_zero_bytes;
 };
 
 /* The representation of "frame" */
@@ -84,8 +100,13 @@ struct page_operations {
 /* Representation of current process's memory space.
  * We don't want to force you to obey any specific design for this struct.
  * All designs up to you for this. */
+/* [*]3-o, spt는 해쉬테이블로, */
 struct supplemental_page_table {
+	struct hash s_pt;
+	struct lock spt_lock;
 };
+
+
 
 #include "threads/thread.h"
 void supplemental_page_table_init (struct supplemental_page_table *spt);
@@ -100,6 +121,7 @@ void spt_remove_page (struct supplemental_page_table *spt, struct page *page);
 void vm_init (void);
 bool vm_try_handle_fault (struct intr_frame *f, void *addr, bool user,
 		bool write, bool not_present);
+void vm_stack_growth(void *addr UNUSED);
 
 #define vm_alloc_page(type, upage, writable) \
 	vm_alloc_page_with_initializer ((type), (upage), (writable), NULL, NULL)
@@ -108,5 +130,15 @@ bool vm_alloc_page_with_initializer (enum vm_type type, void *upage,
 void vm_dealloc_page (struct page *page);
 bool vm_claim_page (void *va);
 enum vm_type page_get_type (struct page *page);
+
+// [*]3-o, 구현함수
+bool
+page_less (const struct hash_elem *a_,
+           const struct hash_elem *b_, void *aux UNUSED);
+
+unsigned
+page_hash (const struct hash_elem *p_, void *aux UNUSED);
+
+void spt_kill_destructor(struct hash_elem *h, void* aux UNUSED);
 
 #endif  /* VM_VM_H */

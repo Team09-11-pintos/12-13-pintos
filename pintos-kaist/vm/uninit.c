@@ -28,7 +28,7 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 		enum vm_type type, void *aux,
 		bool (*initializer)(struct page *, enum vm_type, void *)) {
 	ASSERT (page != NULL);
-
+	
 	*page = (struct page) {
 		.operations = &uninit_ops,
 		.va = va,
@@ -43,6 +43,9 @@ uninit_new (struct page *page, void *va, vm_initializer *init,
 }
 
 /* Initalize the page on first fault */
+// 첫 페이지 fault시 spt의 uninit 페이지를 실제 페이지로 변환하는 함수.
+// 그 uninit 페이지에 어떤 페이지로 변환될지에 대한 정보가 담겨있음.
+// 그걸 바탕으로 uninit 페이지를 -> 특정 페이지로 변환
 static bool
 uninit_initialize (struct page *page, void *kva) {
 	struct uninit_page *uninit = &page->uninit;
@@ -65,4 +68,11 @@ uninit_destroy (struct page *page) {
 	struct uninit_page *uninit UNUSED = &page->uninit;
 	/* TODO: Fill this function.
 	 * TODO: If you don't have anything to do, just return. */
+	// page는 밖에서 free 해주니까, 여기서 uninit aux만 처리하니까 안되네
+	
+	if(page->uninit.aux != NULL){
+		free(page->uninit.aux);
+		page->uninit.aux = NULL;
+	}
+
 }

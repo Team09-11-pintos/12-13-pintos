@@ -15,6 +15,8 @@
 #include "intrinsic.h"
 #include <stdio.h>
 #include "threads/thread.h"
+#include "../include/vm/file.h"
+
 
 void syscall_entry (void);
 void syscall_handler (struct intr_frame *);
@@ -32,7 +34,9 @@ bool sys_create(char*filename, unsigned size);
 int sys_open(char *filename);
 bool sys_remove(char *filename);
 int sys_filesize(int fd);
-
+void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset);
+bool file_map_check(size_t length, void * addr, int fd, off_t offset);
+void sys_munmap (void *addr);
 
 
 /* System call.
@@ -69,6 +73,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
 
 	uint64_t syscall_type = f->R.rax;
+	thread_current ()->user_rsp = f->rsp; 
 
 	switch(syscall_type){
 		case SYS_HALT:{
@@ -133,6 +138,18 @@ syscall_handler (struct intr_frame *f UNUSED) {
 		}
 		case SYS_TELL:{
 			f->R.rax = sys_tell((int)f->R.rdi);
+			break;
+		}
+		case SYS_MMAP:{
+			f->R.rax = sys_mmap((void*) (f->R.rdi), (size_t) (f->R.rsi), (int) (f->R.rdx), (int) (f->R.r10), (off_t) (f->R.r8));
+			break;
+		}                   
+		case SYS_MUNMAP:{
+			sys_munmap(f->R.rdi);
+			break;
+		}
+		default:
+		{
 			break;
 		}
 	}
@@ -274,10 +291,18 @@ sys_read(int fd, void *buffer, size_t size){
 		return 0;
 	}
 
-	if(buffer == NULL || !is_user_vaddr(buffer) || pml4_get_page(curr->pml4, buffer)==NULL){
+	// 	조건검사에서 pml4_get_page(curr->pml4, buffer)==NULL 제외하니까 read_boundary 통과,
+	// NULL인게 정상임 그래야 페이지 fault가 떠서
+	if(buffer == NULL || !is_user_vaddr(buffer)){
 		sys_exit(-1);
 	}
 
+	// 이미 등록된 페이지, 즉 page fault를 거치지 않고 접근한 경우에 writable을 체크하는 방법.
+	struct page* check_writable = spt_find_page(&thread_current()->spt, buffer);
+
+	if((check_writable != NULL) && (check_writable->writable == false)){
+		sys_exit(-1);
+	}
 	if((fd<0) || (fd>=127)){
 		return -1;
 	}
@@ -321,6 +346,7 @@ sys_write(int fd, void* buf, size_t size){
 	if(fd == 1){
 		lock_acquire(&file_lock);
 		putbuf((char *)buf, size);
+
 		lock_release(&file_lock);
 		return size;
 	}else if(fd >= 2){
@@ -383,4 +409,54 @@ sys_tell(int fd){
 	if (f == NULL)
 		return (unsigned)-1;
 	file_tell(f);
+}
+
+void *sys_mmap(void *addr, size_t length, int writable, int fd, off_t offset){
+	if(!file_map_check(length,addr,fd,offset)){
+		//printf("\tfile map check false;\n");
+		return NULL;
+	}
+
+	struct thread* cur = thread_current();
+	struct file *file = is_open_file(cur,fd);
+
+	if (!file){
+		return NULL;
+	}
+
+	return do_mmap(addr, length, writable, file, offset);
+}
+
+void sys_munmap (void *addr){
+	do_munmap(addr);
+	return;
+}
+
+bool file_map_check(size_t length, void * addr, int fd, off_t offset){
+	// length
+	if (length <= 0){
+		//printf("\t invalid lenght\n");
+		return false;
+	}
+
+	// valid fd
+	if ((fd<=1) || (fd>=127)){
+		//printf("\t invalid fd\n");
+
+		return false;
+	}
+
+	// valid addr
+	if (!addr || (((intptr_t)addr % PGSIZE)) || addr > 0x8000000000){
+		//printf("\t invalid addr\n");
+		return false;
+	}
+
+	// valid offset
+	if ((((intptr_t)offset % PGSIZE))){
+		//printf("\t invalid offset\n");
+		return false;
+	}
+
+	return true;
 }

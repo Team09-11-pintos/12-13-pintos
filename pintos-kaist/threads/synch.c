@@ -301,7 +301,6 @@ remove_donor(struct lock *lock){
 			return;
 	}
 }
-
 void
 update_donations_priority(void){
 	struct thread *curr = thread_current();

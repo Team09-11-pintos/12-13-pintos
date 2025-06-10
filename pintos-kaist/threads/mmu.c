@@ -213,9 +213,7 @@ pml4_activate (uint64_t *pml4) {
 void *
 pml4_get_page (uint64_t *pml4, const void *uaddr) {
 	ASSERT (is_user_vaddr (uaddr));
-
 	uint64_t *pte = pml4e_walk (pml4, (uint64_t) uaddr, 0);
-
 	if (pte && (*pte & PTE_P))
 		return ptov (PTE_ADDR (*pte)) + pg_ofs (uaddr);
 	return NULL;
@@ -235,11 +233,18 @@ pml4_set_page (uint64_t *pml4, void *upage, void *kpage, bool rw) {
 	ASSERT (pg_ofs (kpage) == 0);
 	ASSERT (is_user_vaddr (upage));
 	ASSERT (pml4 != base_pml4);
-
+	
 	uint64_t *pte = pml4e_walk (pml4, (uint64_t) upage, 1);
-
 	if (pte)
 		*pte = vtop (kpage) | PTE_P | (rw ? PTE_W : 0) | PTE_U;
+	
+	if (pte!=NULL){
+		return true;
+	}else{
+		printf("pte null\n");
+		return false;
+	}
+
 	return pte != NULL;
 }
 

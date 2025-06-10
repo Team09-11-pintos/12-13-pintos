@@ -15,10 +15,10 @@
 *.dump
 
 # 빌드 디렉터리
-/build/
-/bin/
-/obj/
-/output/
+**/build/
+**/bin/
+**/obj/
+**/output/
 
 # core dump
 core
@@ -29,3 +29,9 @@ core
 
 # macOS
 .DS_Store
+
+# 세팅파일
+.vscode/c_cpp_properties.json
+
+# .c 파일
+pintos-kaist/goodmorning.c

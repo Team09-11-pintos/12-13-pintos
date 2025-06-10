@@ -5,8 +5,8 @@
 
    See hash.h for basic information. */
 
-#include "hash.h"
 #include "../debug.h"
+#include "hash.h"
 #include "threads/malloc.h"
 
 #define list_elem_to_hash_elem(LIST_ELEM)                       \
@@ -391,4 +391,6 @@ remove_elem (struct hash *h, struct hash_elem *e) {
 	h->elem_cnt--;
 	list_remove (&e->list_elem);
 }
+
+
 
