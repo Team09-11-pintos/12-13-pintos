@@ -289,7 +289,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	{	
 		if (!user)
 		{
-			printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
+			//printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
 			sys_exit(-1);
 		}
 
