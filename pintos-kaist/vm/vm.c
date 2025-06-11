@@ -125,9 +125,9 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 {
 	int succ = false;
 	/* TODO: Fill this function. */
-	lock_acquire(&spt->spt_lock);
+	//lock_acquire(&spt->spt_lock);
 	struct hash_elem *tmp = hash_insert(&spt->s_pt, &page->hash_elem);
-	lock_release(&spt->spt_lock);
+	//lock_release(&spt->spt_lock);
 
 	if (tmp == NULL)
 	{
@@ -138,13 +138,13 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
-	lock_acquire(&spt->spt_lock);
+	//lock_acquire(&spt->spt_lock);
 	struct hash_elem *tmp = hash_delete(&spt->s_pt, &page->hash_elem);
 	if (tmp != NULL)
 	{
 		vm_dealloc_page(page);
 	}
-	lock_release(&spt->spt_lock);
+	//lock_release(&spt->spt_lock);
 }
 
 /* Get the struct frame, that will be evicted. */
@@ -194,39 +194,80 @@ vm_get_frame(void)
 }
 
 /* Growing the stack. */
+// void vm_stack_growth(void *addr UNUSED)
+// {
+
+	
+// 	// void *stack_bottom_growth = (void *) ( addr);
+// 	// int i = 0; 디버깅용
+// 	// printf("sad\n");
+// 	char *stack_bottom_growth = pg_round_down(addr);
+// 	uintptr_t stack_bottom_before_growth = thread_current () -> stack_bot;
+	
+// 	thread_current () -> stack_bot = (uintptr_t) stack_bottom_growth;
+	
+// 	while (stack_bottom_before_growth > stack_bottom_growth)
+// 	{	
+		
+// 		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_before_growth, true))
+// 		{
+// 			printf("스택 확장 alloc 실패\n");
+// 			goto done;
+// 		}
+		
+// 		if (!vm_claim_page(stack_bottom_before_growth))
+// 		{
+// 			printf("스택 확장 claim 실패\n");
+// 			goto done;
+// 		}
+// 		stack_bottom_before_growth -= (1<<12);
+		
+// 	}
+	
+// 	//printf("asd\n");
+// 	// return true;
+// done:
+// 	return true;
+// }
+/* Growing the stack. */
 void vm_stack_growth(void *addr UNUSED)
 {
 
-	
-	// void *stack_bottom_growth = (void *) ( addr);
-	// int i = 0; 디버깅용
+	// void *target_stk_bot = (void *) ( addr);
+	int i = 0; 
 	// printf("sad\n");
 	char *stack_bottom_growth = pg_round_down(addr);
-	uintptr_t stack_bottom_before_growth = thread_current () -> stack_bot;
+	uintptr_t origin_stack_bot = thread_current () -> stack_bot;
 	
 	thread_current () -> stack_bot = (uintptr_t) stack_bottom_growth;
-	while (stack_bottom_before_growth > stack_bottom_growth)
+	while (origin_stack_bot > stack_bottom_growth)
 	{	
-		stack_bottom_before_growth -= (1<<12);
-		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_before_growth, true))
+		origin_stack_bot -= (1<<12);
+		//printf("stack growth addr: %p, name: %s\n",origin_stack_bot, thread_current()->name);
+		if (!vm_alloc_page(VM_ANON , origin_stack_bot, true))
 		{
 			printf("스택 확장 alloc 실패\n");
+			thread_current () -> stack_bot = (origin_stack_bot + (1<<12));
 			goto done;
 		}
 		
-		if (!vm_claim_page(stack_bottom_before_growth))
+		if (!vm_claim_page(origin_stack_bot))
 		{
+			thread_current () -> stack_bot = (origin_stack_bot + (1<<12));
 			printf("스택 확장 claim 실패\n");
 			goto done;
 		}
-		
+		thread_current () -> stack_bot = origin_stack_bot;
+		//printf("reps: %d\n", i++);
 	}
 	
 	//printf("asd\n");
 	// return true;
 done:
-	return true;
+	return;
 }
+
+
 
 /* Handle the fault on write_protected page */
 static bool
@@ -244,11 +285,11 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	struct page *page = spt_find_page(spt, addr);
 	// printf("addr: %p\n",addr);
-	if (((uintptr_t)USER_STACK_LIMIT < (uintptr_t)addr && (uintptr_t) addr <= USER_STACK))
+	if (((uintptr_t)USER_STACK_LIMIT < (uintptr_t)addr) && ((uintptr_t)USER_STACK >= (uintptr_t)addr))
 	{	
 		if (!user)
 		{
-			//printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
+			printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
 			sys_exit(-1);
 		}
 
@@ -257,9 +298,10 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 		// printf("rsp: %x\n", f->rsp);
 		// printf("stack_bot - fault addr: %p\n", ((thread_current()->stack_bot) - (uintptr_t)addr));
 		// printf("rsp - addr: %p\n",  f->rsp - ((uintptr_t)addr));
-
-		if (((f->rsp) - ((uintptr_t)addr) >= (1<<12)))
-		{
+		
+		ptrdiff_t diff = (f->rsp) - ((uintptr_t)addr);
+		if ((diff >= (1<<12)))
+		{	
 			//printf("saasdsadd\n");
 			sys_exit(-1);
 		}
@@ -274,7 +316,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	{
 		//printf("페이지 예약정보 없음\n");
 		sys_exit(-1);
-		return false;
+		//return false;
 	}
 
 	return vm_do_claim_page(page);

@@ -78,7 +78,7 @@ do_mmap(void *addr, size_t length, int writable,
 {
 	ASSERT(pg_ofs(addr) == 0);
 	ASSERT(offset % PGSIZE == 0);
-	uint32_t read_bytes, zero_bytes;
+	size_t read_bytes, zero_bytes;
 
 	size_t file__length = file_length(file);
 	if (offset >= file__length)
