@@ -527,7 +527,9 @@ load (const char *file_name, struct intr_frame *if_) {
 	if (t->pml4 == NULL)
 		goto done;
 	process_activate (thread_current ());
-	//printf("file name: %s\n", file_name);
+
+	lock_acquire(&file_lock);
+
 	/* Open executable file. */
 	file = filesys_open (file_name);
 	if (file == NULL) {
@@ -634,6 +636,7 @@ load (const char *file_name, struct intr_frame *if_) {
 
 done:
 	/* We arrive here whether the load is successful or not. */
+	lock_release(&file_lock);
 	return success;
 }
 

@@ -127,9 +127,9 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 {
 	int succ = false;
 	/* TODO: Fill this function. */
-	lock_acquire(&spt->spt_lock);
+	//lock_acquire(&spt->spt_lock);
 	struct hash_elem *tmp = hash_insert(&spt->s_pt, &page->hash_elem);
-	lock_release(&spt->spt_lock);
+	//lock_release(&spt->spt_lock);
 
 	if (tmp == NULL)
 	{
@@ -140,13 +140,13 @@ bool spt_insert_page(struct supplemental_page_table *spt UNUSED,
 
 void spt_remove_page(struct supplemental_page_table *spt, struct page *page)
 {
-	lock_acquire(&spt->spt_lock);
+	//lock_acquire(&spt->spt_lock);
 	struct hash_elem *tmp = hash_delete(&spt->s_pt, &page->hash_elem);
 	if (tmp != NULL)
 	{
 		vm_dealloc_page(page);
 	}
-	lock_release(&spt->spt_lock);
+	//lock_release(&spt->spt_lock);
 }
 
 /* Get the struct frame, that will be evicted. */
@@ -196,6 +196,42 @@ vm_get_frame(void)
 }
 
 /* Growing the stack. */
+// void vm_stack_growth(void *addr UNUSED)
+// {
+
+	
+// 	// void *stack_bottom_growth = (void *) ( addr);
+// 	// int i = 0; 디버깅용
+// 	// printf("sad\n");
+// 	char *stack_bottom_growth = pg_round_down(addr);
+// 	uintptr_t stack_bottom_before_growth = thread_current () -> stack_bot;
+	
+// 	thread_current () -> stack_bot = (uintptr_t) stack_bottom_growth;
+	
+// 	while (stack_bottom_before_growth > stack_bottom_growth)
+// 	{	
+		
+// 		if (!vm_alloc_page(VM_ANON | VM_MARKER_0, stack_bottom_before_growth, true))
+// 		{
+// 			printf("스택 확장 alloc 실패\n");
+// 			goto done;
+// 		}
+		
+// 		if (!vm_claim_page(stack_bottom_before_growth))
+// 		{
+// 			printf("스택 확장 claim 실패\n");
+// 			goto done;
+// 		}
+// 		stack_bottom_before_growth -= (1<<12);
+		
+// 	}
+	
+// 	//printf("asd\n");
+// 	// return true;
+// done:
+// 	return true;
+// }
+/* Growing the stack. */
 void vm_stack_growth(void *addr UNUSED)
 {
 
@@ -233,6 +269,8 @@ done:
 	return;
 }
 
+
+
 /* Handle the fault on write_protected page */
 static bool
 vm_handle_wp(struct page *page UNUSED)
@@ -253,7 +291,7 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	{	
 		if (!user)
 		{
-			// printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
+			//printf("커널모드에서 유효하지 않은 스택 주소 접근\n");
 			sys_exit(-1);
 		}
 
@@ -262,11 +300,13 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 		//printf("rsp: %x\n", f->rsp);
 		// printf("stack_bot - fault addr: %p\n", ((thread_current()->stack_bot) - (uintptr_t)addr));
 		// printf("rsp - addr: %p\n",  f->rsp - ((uintptr_t)addr));
+
 		ptrdiff_t diff = (f->rsp) - ((uintptr_t)addr);
 
 		if ((diff >= (1<<12)))
 		{
 			//printf("sad\n");
+
 			sys_exit(-1);
 		}
 		else
@@ -279,12 +319,14 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	if (page == NULL)
 	{
 		//printf("페이지 예약정보 없음\n");
+
 		// printf("\taddr: %p\n", addr);
 		// printf("\tthread:name %s\n", thread_current()->name);
 		// printf("\tchildstack bot: %x\n", thread_current()->stack_bot); 	
 		// printf("user?: %d\n", user);
 		sys_exit(-1);
 		// return false;
+
 	}
 
 	return vm_do_claim_page(page);
@@ -386,7 +428,9 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 		case VM_UNINIT:{
 			struct file_load_aux *uninit_aux = malloc(sizeof(struct file_load_aux));
 			memcpy(uninit_aux, src_page->uninit.aux, sizeof(struct file_load_aux));
+
 			//printf("\tcopy addr: %p\n", src_page->va);
+
 			if (!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, uninit_aux))
 			{
 				printf("uninit copy 실패, 실패주소: %p\n", src_page->va);
@@ -448,9 +492,11 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	/* TODO: Destroy all the supplemental_page_table hold by thread and
 	 * TODO: writeback all the modified contents to the storage. */
 	// supplemental_page_table_init(spt);
+
 	//lock_acquire(&spt->spt_lock);
 	hash_destroy(&spt->s_pt, spt_kill_destructor);
 	//lock_release(&spt->spt_lock);
+
 
 }
 

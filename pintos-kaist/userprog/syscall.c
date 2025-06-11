@@ -172,7 +172,7 @@ sys_exec(const char *file){
 
 	struct thread* curr = thread_current();
 	
-	if(!is_user_vaddr(file) || pml4_get_page(curr->pml4, file) ==NULL || file == NULL){
+	if(!is_user_vaddr(file) ||/* pml4_get_page(curr->pml4, file) ==NULL||*/ file == NULL){
 		sys_exit(-1);
 	}
 	
@@ -197,7 +197,7 @@ tid_t
 sys_fork(char *thread_name, struct intr_frame *if_){
 
 	struct thread * curr = thread_current();
-	if(!is_user_vaddr(thread_name) || pml4_get_page(curr->pml4, thread_name) ==NULL || thread_name == NULL){
+	if(!is_user_vaddr(thread_name) || /*pml4_get_page(curr->pml4, thread_name) ==NULL ||*/ thread_name == NULL){
 		sys_exit(-1);
 	}
 
@@ -213,7 +213,7 @@ sys_fork(char *thread_name, struct intr_frame *if_){
 bool
 sys_create(char* filename, unsigned size){
 	struct thread* curr = thread_current();
-	if(!is_user_vaddr(filename) || pml4_get_page(curr->pml4, filename) ==NULL || filename == NULL){
+	if(!is_user_vaddr(filename) /*|| pml4_get_page(curr->pml4, filename) ==NULL*/ || filename == NULL){
 		sys_exit(-1);
 	}
 
@@ -229,7 +229,7 @@ sys_create(char* filename, unsigned size){
 int
 sys_open(char* filename){
 	struct thread * curr = thread_current();
-	if(filename == NULL || !is_user_vaddr(filename) || pml4_get_page(curr->pml4, filename) == NULL ){
+	if(filename == NULL || !is_user_vaddr(filename) /*|| pml4_get_page(curr->pml4, filename) == NULL*/ ){
 		sys_exit(-1);
 	}
 
@@ -309,11 +309,11 @@ sys_read(int fd, void *buffer, size_t size){
 
 	if(fd == 0){
 		char *buf = (char *) buffer;
-		lock_acquire(&file_lock);
+		//lock_acquire(&file_lock);
 		for(int i=0;i<size;i++){
 			buf[i] = input_getc();
 		}
-		lock_release(&file_lock);
+		//lock_release(&file_lock);
 		return size;
 	}else{
 		struct thread* cur = thread_current();
@@ -344,10 +344,12 @@ sys_write(int fd, void* buf, size_t size){
 	}
 
 	if(fd == 1){
-		lock_acquire(&file_lock);
+		//lock_acquire(&file_lock);
 		putbuf((char *)buf, size);
 
+
 		lock_release(&file_lock);
+
 		return size;
 	}else if(fd >= 2){
 		// file descriptor 
