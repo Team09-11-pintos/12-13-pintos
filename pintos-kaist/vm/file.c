@@ -51,7 +51,12 @@ file_backed_swap_out(struct page *page)
 	struct file_page *file_page UNUSED = &page->file;
 		struct thread *cur = thread_current();
 	if (pml4_is_dirty((cur->pml4), page->va)){
+
+		lock_acquire(&file_lock);
 		file_write_at(page->file.file ,page->frame->kva, page->file.page_read_bytes, page->file.ofs);
+		lock_release(&file_lock);
+
+
 		pml4_set_dirty(cur->pml4,page->va,false);
 	}
 	palloc_free_page(page->frame->kva);
@@ -78,7 +83,9 @@ do_mmap(void *addr, size_t length, int writable,
 {
 	ASSERT(pg_ofs(addr) == 0);
 	ASSERT(offset % PGSIZE == 0);
-	size_t read_bytes, zero_bytes;
+
+	uint32_t read_bytes, zero_bytes;
+
 
 	size_t file__length = file_length(file);
 	if (offset >= file__length)
@@ -144,6 +151,7 @@ do_mmap(void *addr, size_t length, int writable,
 		zero_bytes -= page_zero_bytes;
 		addr += PGSIZE;
 	}
+
 
 	return ret_addr;
 }

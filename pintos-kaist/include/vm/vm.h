@@ -7,6 +7,9 @@
 #include "threads/vaddr.h"
 #include "threads/mmu.h"
 
+#include "filesys/filesys.h"
+
+
 
 enum vm_type {
 	/* page not initialized */

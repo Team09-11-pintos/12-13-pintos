@@ -73,6 +73,7 @@ syscall_handler (struct intr_frame *f UNUSED) {
 	// TODO: Your implementation goes here.
 
 	uint64_t syscall_type = f->R.rax;
+	thread_current ()->user_rsp = f->rsp; 
 
 	switch(syscall_type){
 		case SYS_HALT:{
@@ -345,7 +346,10 @@ sys_write(int fd, void* buf, size_t size){
 	if(fd == 1){
 		//lock_acquire(&file_lock);
 		putbuf((char *)buf, size);
-		//lock_release(&file_lock);
+
+
+		lock_release(&file_lock);
+
 		return size;
 	}else if(fd >= 2){
 		// file descriptor 

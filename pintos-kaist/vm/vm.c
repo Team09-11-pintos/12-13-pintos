@@ -6,6 +6,7 @@
 #include "../include/userprog/exception.h"
 #include "../include/userprog/process.h"
 #include "threads/vaddr.h"
+#include <stdlib.h>
 
 
 /* Initializes the virtual memory subsystem by invoking each subsystem's
@@ -54,6 +55,7 @@ bool vm_alloc_page_with_initializer(enum vm_type type, void *upage, bool writabl
 	ASSERT(VM_TYPE(type) != VM_UNINIT)
 	struct supplemental_page_table *spt = &thread_current()->spt;
 	/* Check wheter the upage is already occupied or not. */
+	// printf("\taddr: %p, name: %s\n", upage, thread_current()->name);
 	if (spt_find_page(spt, upage) == NULL)
 	{
 		/* TODO: Create the page, fetch the initialier according to the VM type,
@@ -178,7 +180,7 @@ vm_get_frame(void)
 	struct frame *frame = malloc(sizeof(struct frame));
 	/* TODO: Fill this function. */
 	frame->page = NULL;
-	frame->kva = palloc_get_page(PAL_USER);
+	frame->kva = palloc_get_page(PAL_USER | PAL_ZERO);
 
 	if (frame->kva == NULL)
 	{
@@ -295,14 +297,16 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 
 		// printf("stack_bot: %x\n", thread_current()->stack_bot);
 		// printf("fault addr in stack: %p\n", addr);
-		// printf("rsp: %x\n", f->rsp);
+		//printf("rsp: %x\n", f->rsp);
 		// printf("stack_bot - fault addr: %p\n", ((thread_current()->stack_bot) - (uintptr_t)addr));
 		// printf("rsp - addr: %p\n",  f->rsp - ((uintptr_t)addr));
-		
+
 		ptrdiff_t diff = (f->rsp) - ((uintptr_t)addr);
+
 		if ((diff >= (1<<12)))
-		{	
-			//printf("saasdsadd\n");
+		{
+			//printf("sad\n");
+
 			sys_exit(-1);
 		}
 		else
@@ -315,8 +319,14 @@ bool vm_try_handle_fault(struct intr_frame *f UNUSED, void *addr UNUSED,
 	if (page == NULL)
 	{
 		//printf("페이지 예약정보 없음\n");
+
+		// printf("\taddr: %p\n", addr);
+		// printf("\tthread:name %s\n", thread_current()->name);
+		// printf("\tchildstack bot: %x\n", thread_current()->stack_bot); 	
+		// printf("user?: %d\n", user);
 		sys_exit(-1);
-		//return false;
+		// return false;
+
 	}
 
 	return vm_do_claim_page(page);
@@ -418,8 +428,13 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 		case VM_UNINIT:{
 			struct file_load_aux *uninit_aux = malloc(sizeof(struct file_load_aux));
 			memcpy(uninit_aux, src_page->uninit.aux, sizeof(struct file_load_aux));
+
+			//printf("\tcopy addr: %p\n", src_page->va);
+
 			if (!vm_alloc_page_with_initializer(src_page->uninit.type, src_page->va, src_page->writable, src_page->uninit.init, uninit_aux))
 			{
+				printf("uninit copy 실패, 실패주소: %p\n", src_page->va);
+				
 				return false;
 			}
 			break;
@@ -451,11 +466,13 @@ bool supplemental_page_table_copy(struct supplemental_page_table *dst UNUSED,
 
 			if (!vm_alloc_page(VM_ANON, src_page->va, src_page->writable))
 			{
+				printf("복사중 할당 실패\n");
 				return false;
 			}
 
 			if (!vm_claim_page(src_page->va))
 			{
+				printf("복사중 클레임 실패\n");
 				return false;
 			}
 			// memcpy 안쓰려고 했는데, 메모리에서 SPT를 통해 load하는 방식은 부모의 메모리상태를 반영하지 못해서 정확한 값 복사가안됨.
@@ -476,7 +493,10 @@ void supplemental_page_table_kill(struct supplemental_page_table *spt UNUSED)
 	 * TODO: writeback all the modified contents to the storage. */
 	// supplemental_page_table_init(spt);
 
+	//lock_acquire(&spt->spt_lock);
 	hash_destroy(&spt->s_pt, spt_kill_destructor);
+	//lock_release(&spt->spt_lock);
+
 
 }
 

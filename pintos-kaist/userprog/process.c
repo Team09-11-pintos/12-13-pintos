@@ -330,7 +330,10 @@ process_exec (void *f_name) {
 
 	palloc_free_page (file_name);
 
+	//printf("\tbefore doiret\n");
 	/* Start switched process. */
+	//printf("f->rip: %x\n", _if.rip);
+	// printf("[fork] child.rsp=%x\n", _if.rsp);
 	do_iret (&_if);
 	NOT_REACHED ();
 }
@@ -524,6 +527,7 @@ load (const char *file_name, struct intr_frame *if_) {
 	if (t->pml4 == NULL)
 		goto done;
 	process_activate (thread_current ());
+
 	lock_acquire(&file_lock);
 
 	/* Open executable file. */
@@ -553,12 +557,18 @@ load (const char *file_name, struct intr_frame *if_) {
 	for (i = 0; i < ehdr.e_phnum; i++) {
 		struct Phdr phdr;
 
-		if (file_ofs < 0 || file_ofs > file_length (file))
+		if (file_ofs < 0 || file_ofs > file_length (file)){
+			printf("\tfile length false\n");
 			goto done;
+		}
 		file_seek (file, file_ofs);
 
-		if (file_read (file, &phdr, sizeof phdr) != sizeof phdr)
+		if (file_read (file, &phdr, sizeof phdr) != sizeof phdr){
+			printf("\tfile read false\n");
 			goto done;
+		}
+		
+			
 		file_ofs += sizeof phdr;
 		switch (phdr.p_type) {
 			case PT_NULL:
@@ -592,18 +602,26 @@ load (const char *file_name, struct intr_frame *if_) {
 						zero_bytes = ROUND_UP (page_offset + phdr.p_memsz, PGSIZE);
 					}
 					if (!load_segment (file, file_page, (void *) mem_page,
-								read_bytes, zero_bytes, writable))
-						goto done;
+								read_bytes, zero_bytes, writable)){
+							printf("\tload segment false\n");
+							goto done;
+								}
 				}
-				else
+				else{
+					printf("\telse error\n");
 					goto done;
+				}
+					
 				break;
 		}
 	}
 
 	/* Set up stack. */
-	if (!setup_stack (if_))
+	if (!setup_stack (if_)){
+		printf("\tsetup stack false\n");
 		goto done;
+	}
+		
 
 	/* Start address. */
 	if_->rip = ehdr.e_entry;
@@ -884,7 +902,7 @@ setup_stack (struct intr_frame *if_) {
 	 * TODO: You should mark the page is stack. */
 	/* TODO: Your code goes here */
 
-	if(!vm_alloc_page_with_initializer (VM_ANON | VM_MARKER_0, stack_bottom, true, NULL, NULL)){
+	if(!vm_alloc_page_with_initializer (VM_ANON, stack_bottom, true, NULL, NULL)){
 		return success;
 	}
 	if(!vm_claim_page(stack_bottom)){
